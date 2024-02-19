@@ -1,0 +1,208 @@
+{extend name='common/container'}
+{block name="content"}
+<div style="margin:0 15px 15px 15px;">
+<el-card shadow="never" style="min-height:650px;">
+<div v-if="search_visible" id="search" class="search">
+	<el-form ref="form" size="small" :model="searchData" inline>
+		<el-form-item label="住户名称">
+			<select-page :is_clear="is_clear" url="/Syt/getMember_id" :selectval.sync="searchData.member_id"></select-page>
+		</el-form-item>
+		<search-tool :search_data.sync="searchData" :is_clear.sync="is_clear" @refesh_list="index"></search-tool>
+	</el-form>
+</div>
+<div class="btn-group" style="margin-top:10px;margin-bottom:10px;">
+	<div>
+	</div>
+	<div><table-tool :search_visible.sync="search_visible"   @refesh_list="index"></table-tool></div>
+</div>
+<el-table :row-class-name="rowClass" @selection-change="selection"  @row-click="handleRowClick"
+		  row-key="syt_id"  :header-cell-style="{ background: '#eef1f6', color: '#606266' }"
+		  @sort-change='sortChange' v-loading="loading"  ref="multipleTable" border class="eltable"
+		  :data="list"  style="width: 100%">
+	<el-table-column align="center" type="selection" width="42"></el-table-column>
+	<el-table-column align="center"  property="member_id"  label="支付人名称" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="syt_method"  label="支付方式" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<el-tag type="success" v-if="scope.row.syt_method == '1'" size="mini" effect="dark">微信</el-tag>
+			<el-tag type="primary" v-if="scope.row.syt_method == '2'" size="mini" effect="dark">支付宝</el-tag>
+			<el-tag type="info" v-if="scope.row.syt_method == '3'" size="mini" effect="dark">银行转账</el-tag>
+			<el-tag type="danger" v-if="scope.row.syt_method == '4'" size="mini" effect="dark">现金</el-tag>
+			<el-tag type="warning" v-if="scope.row.syt_method == '5'" size="mini" effect="dark">预收款冲抵</el-tag>
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="syt_invoice"  label="发票编号" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="syt_skje"  label="收款金额" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="syt_dcje"  label="预收款冲抵金额" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="syt_zfsj"  label="支付时间" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			{{parseTime(scope.row.syt_zfsj,'{y}-{m}-{d}')}}
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="syt_bz"  label="备注信息" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column :fixed="ismobile()?false:'right'" label="操作" align="center" width="230">
+		<template slot-scope="scope">
+			<div v-if="scope.row.syt_id">
+				<el-button v-if="checkPermission('/shop/Syt/dialogUrl.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-edit" type="success" @click="dialogUrl(scope.row)" >收款明细</el-button>
+				<el-button v-if="checkPermission('/shop/Syt/printIndexLists.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-edit" type="primary" @click="printIndexLists(scope.row)" >打印票据</el-button>
+			</div>
+		</template>
+	</el-table-column>
+</el-table>
+<Page :total="page_data.total" :page.sync="page_data.page" :limit.sync="page_data.limit" @pagination="index" />
+</el-card>
+	<DialogUrl :info="dialogUrlInfo" :show.sync="dialog.dialogUrlDialogStatus" size="small"></DialogUrl>
+	<Print :info="printDialogUrlInfo" :show.sync="dialog.printDialogStatus" size="small"></Print>
+</div>
+
+{/block}
+{block name="script"}
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script src="__PUBLIC__/assets/libs/treeselect/vue-treeselect.umd.min.js"></script>
+<link rel="stylesheet" href="__PUBLIC__/assets/libs/treeselect/vue-treeselect.min.css">
+<script src="__PUBLIC__/components/shop/syt/dialogUrl.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/syt/dialogUrl.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/syt/print.js?v=<?php echo rand(1000,9999)?>"></script>
+<script>
+new Vue({
+	el: '#app',
+	components:{
+	},
+	data: function() {
+		return {
+			dialog: {
+				detailDialogStatus : false,
+				dialogUrlDialogStatus : false,
+				printDialogStatus : false,
+			},
+			dialogUrlInfo:{},
+			printDialogUrlInfo:{},
+			searchData:{},
+			button_group:[
+			],
+			loading: false,
+			page_data: {
+				limit: 20,
+				page: 1,
+				total:20,
+			},
+			order:'',
+			sort:'',
+			ids: [],
+			single:true,
+			multiple:true,
+			search_visible:false,
+			list: [],
+			member_id: [],
+			// fybz_id: [],
+			// sjlx_id: [],
+			// zjys_id: [],
+			detailInfo:{},
+			is_clear:false,
+		}
+	},
+	methods:{
+		index(){
+			let param = {limit:this.page_data.limit,page:this.page_data.page,order:this.order,sort:this.sort}
+			Object.assign(param, this.searchData,this.urlobj)
+			this.loading = true
+			console.log('param',param)
+			axios.post(base_url + '/Syt/indexLists',param).then(res => {
+				if(res.data.status == 200){
+					this.list = res.data.data.data
+					this.page_data.total = res.data.data.total
+					this.loading = false
+					if(this.page_data.page == 1){
+						// this.member_id = res.data.sql_field_data.member_id
+						// this.fybz_id = res.data.sql_field_data.fybz_ids
+						// this.sjlx_id = res.data.sql_field_data.sjlx_ids
+						// this.zjys_id = res.data.sql_field_data.zjys_ids
+					}
+				}else{
+					this.$message.error(res.data.msg);
+				}
+			})
+		},
+		updateExt(row,field){
+			if(row.syt_id){
+				axios.post(base_url + '/Syt/updateExt',{syt_id:row.syt_id,[field]:row[field]}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}
+		},
+		detail(row){
+			this.dialog.detailDialogStatus = true
+			this.detailInfo = {syt_id:row.syt_id ? row.syt_id : this.ids.join(',')}
+		},
+		dialogUrl(row){
+			console.log('dialogUrl-row',row.syt_id)
+			let ids = row.syt_id ? row.syt_id : this.ids.join(',')
+			let data = {}
+			this.list.forEach((item,i) => {
+				if(item.syt_id == ids){
+					data = this.list[i]
+				}
+			})
+			console.log('dialogUrl-data',data)
+			this.dialogUrlInfo = data
+			this.dialog.dialogUrlDialogStatus = true
+		},
+		printIndexLists(row){
+
+			axios.post(base_url + '/Syt/getPjys?pjlx_id=1').then(res => {
+				let data = {
+					funame:'printIndexLists',
+					syt_id:row.syt_id,
+					pjlx_id:1,
+					print_ys:res.data.data.print_ys
+				}
+				console.log('printDialogUrl-data',data)
+				this.printDialogUrlInfo = data
+				this.dialog.printDialogStatus = true
+			})
+		},
+		selection(selection) {
+			this.ids = selection.map(item => item.syt_id)
+			this.single = selection.length != 1
+			this.multiple = !selection.length
+		},
+		handleRowClick(row, rowIndex,event){
+			if(event.target.className !== 'el-input__inner'){
+				this.$refs.multipleTable.toggleRowSelection(row)
+			}
+		},
+		rowClass ({ row, rowIndex }) {
+			for(let i=0;i<this.ids.length;i++) {
+				if (row.syt_id === this.ids[i]) {
+					return 'rowLight'
+				}
+			}
+		},
+		sortChange(val){
+			if(val.order == 'descending'){
+				this.order= 'desc'
+			}
+			if(val.order == 'ascending'){
+				this.order= 'asc'
+			}
+			this.sort = val.prop
+			this.index()
+		},
+		fn(method){
+			this[method](this.ids)
+		},
+	},
+	mounted(){
+		this.index()
+	},
+})
+</script>
+{/block}

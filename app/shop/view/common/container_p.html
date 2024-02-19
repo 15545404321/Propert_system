@@ -1,0 +1,42 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>物业操作台</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="__PUBLIC__/assets/css/icons.min.css" rel="stylesheet" type="text/css" />
+<link href="__PUBLIC__/assets/css/app.min.css" rel="stylesheet" type="text/css" />
+<link href="__PUBLIC__/assets/element/index.css" rel="stylesheet">
+<link href="__PUBLIC__/assets/css/base.css" rel="stylesheet">
+<script src="__PUBLIC__/assets/element/vue.js"></script>
+<script src="__PUBLIC__/assets/element/index.js"></script>
+<script src="__PUBLIC__/assets/js/axios.min.js"></script>
+<script src="__PUBLIC__/components/base.component.js"></script>
+<script src="__PUBLIC__/assets/libs/jquery/jquery.min.js"></script>
+<script src="__PUBLIC__/assets/libs/metismenu/metisMenu.min.js"></script>
+<script src="__PUBLIC__/assets/js/js.cookie.min.js"></script>
+<script src="__PUBLIC__/assets/js/common.js"></script>
+<script type="text/javascript">
+
+Vue.config.productionTip = false
+
+<?php
+
+$dialogstate = request()->get('dialogstate');
+
+?>
+
+const base_url = '<?php echo getBaseUrl()?>';
+
+const base_dir = '';//勿要删除
+
+</script>
+</head>
+<body>
+<div id="app" class="page-content" :style="!urlobj.dialogstate ? 'margin-top:60px;':'margin-top:10px;'">
+  {block name="content"}{/block}
+</div>
+{block name="script"}{/block}
+</body>
+</html>

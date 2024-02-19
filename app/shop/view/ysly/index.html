@@ -1,0 +1,297 @@
+{extend name='common/container'}
+{block name="content"}
+<div style="margin:0 15px 15px 15px;">
+<el-row :gutter="10">
+<el-col :span="4" class="hidden-sm-and-down">
+	<left-tree :treelist="treeList" :search_data.sync="searchData" fieldname="ysfl_id" @refesh_list="index"></left-tree>
+</el-col>
+<el-col :xs="24" :sm="24" :md="20" :lg="20">
+<el-card shadow="never" style="min-height:650px;">
+<div v-if="search_visible" id="search" class="search">
+	<el-form ref="form" size="small" :model="searchData" inline>
+		<el-form-item label="钥匙名称">
+			<treeselect style="width:150px" :default-expand-level="2" v-model="searchData.ysfl_id" :options="ysfl_id" :normalizer="normalizer" :show-count="true" placeholder="请选择钥匙名称"/>
+		</el-form-item>
+		<el-form-item label="领用人员">
+			<el-input id="ys_user" v-model="searchData.ys_user"  style="width:150px;" placeholder="请输入领用人员"></el-input>
+		</el-form-item>
+		<el-form-item label="使用状态">
+			<el-select style="width:150px" v-model="searchData.ys_state" filterable clearable placeholder="请选择">
+				<el-option key="0" label="使用" value="1"></el-option>
+				<el-option key="1" label="归还" value="2"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="领用备注">
+			<el-input id="ys_beizhu" v-model="searchData.ys_beizhu"  style="width:150px;" placeholder="请输入领用备注"></el-input>
+		</el-form-item>
+		<search-tool :search_data.sync="searchData" @refesh_list="index"></search-tool>
+	</el-form>
+</div>
+<div class="btn-group" style="margin-top:10px;margin-bottom:10px;">
+	<div>
+		<el-button v-for="item in button_group" :key="item.access" v-if="checkPermission(item.access,'{:implode(',',session('shop.access'))}','{:session('shop.role_id')}',[1])" :disabled="$data[item.disabled]" :type="item.color" size="mini" :icon="item.icon" @click="fn(item.clickname)">
+			<span v-if="item.batch" v-text="$data['batchUpdateStatus']?'批量保存':'批量编辑'"></span>
+			<span v-else v-text="item.name"></span>
+		</el-button>
+	</div>
+	<div><table-tool :search_visible.sync="search_visible"   @refesh_list="index"></table-tool></div>
+</div>
+<el-table :row-class-name="rowClass" @selection-change="selection"  @row-click="handleRowClick"  row-key="ysly_id"  :header-cell-style="{ background: '#eef1f6', color: '#606266' }" @sort-change='sortChange' v-loading="loading"  ref="multipleTable" border class="eltable" :data="list"  style="width: 100%">
+	<el-table-column align="center" type="selection" width="42"></el-table-column>
+	<el-table-column align="center" type = '' property="ysly_id"  label="编号"  width="70">
+	</el-table-column>
+	<el-table-column align="center"  property="ysfl.ysfl_name"  label="钥匙名称" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="ys_lingyong"  label="领用时间" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			{{parseTime(scope.row.ys_lingyong)}}
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="ys_user"  label="领用人员" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="ys_state"  label="使用状态" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<el-tag type="success" v-if="scope.row.ys_state == '1'" size="mini" effect="dark">使用</el-tag>
+			<el-tag type="danger" v-if="scope.row.ys_state == '2'" size="mini" effect="dark">归还</el-tag>
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="ys_ghtime"  label="归还时间" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			{{parseTime(scope.row.ys_ghtime)}}
+		</template>
+	</el-table-column>
+	<el-table-column :fixed="ismobile()?false:'right'" label="操作" align="center" width="190">
+		<template slot-scope="scope">
+			<div v-if="scope.row.ysly_id">
+				<el-button v-if="checkPermission('/shop/Ysly/update.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-edit" type="primary" @click="update(scope.row)" >修改</el-button>
+				<el-button v-if="checkPermission('/shop/Ysly/delete.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-delete" type="danger" @click="del(scope.row)" >删除</el-button>
+			</div>
+		</template>
+	</el-table-column>
+</el-table>
+<Page :total="page_data.total" :page.sync="page_data.page" :limit.sync="page_data.limit" @pagination="index" />
+</el-card>
+</el-col>
+</el-row>
+
+<!--添加-->
+<Add :show.sync="dialog.addDialogStatus" size="small" @refesh_list="index"></Add>
+<!--修改-->
+<Update :info="updateInfo" :show.sync="dialog.updateDialogStatus" size="small" @refesh_list="index"></Update>
+<!--查看详情-->
+<Detail :info="detailInfo" :show.sync="dialog.detailDialogStatus" size="small" @refesh_list="index"></Detail>
+<!--导出弹窗-->
+<el-dialog title="导出进度条" :visible="dumpshow" :before-close="closedialog" width="500px">
+	<el-progress :percentage="percentage"></el-progress>
+</el-dialog>
+
+</div>
+
+{/block}
+{block name="script"}
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script src="__PUBLIC__/assets/libs/treeselect/vue-treeselect.umd.min.js"></script>
+<link rel="stylesheet" href="__PUBLIC__/assets/libs/treeselect/vue-treeselect.min.css">
+<script src="__PUBLIC__/assets/libs/xlsx/xlsx.core.min.js"></script>
+<script src="__PUBLIC__/components/shop/ysly/add.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/ysly/update.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/ysly/detail.js?v=<?php echo rand(1000,9999)?>"></script>
+<script>
+new Vue({
+	el: '#app',
+	components:{
+		'treeselect':VueTreeselect.Treeselect,
+	},
+	data: function() {
+		return {
+			dialog: {
+				addDialogStatus : false,
+				updateDialogStatus : false,
+				detailDialogStatus : false,
+			},
+			searchData:{},
+			button_group:[
+				{name:'添加',color:'success',access:'/shop/Ysly/add.html',icon:'el-icon-plus',disabled:'',clickname:'add'},
+				{name:'修改',color:'primary',access:'/shop/Ysly/update.html',icon:'el-icon-edit',disabled:'single',clickname:'update'},
+				{name:'删除',color:'danger',access:'/shop/Ysly/delete.html',icon:'el-icon-delete',disabled:'multiple',clickname:'del'},
+				{name:'查看详情',color:'info',access:'/shop/Ysly/detail.html',icon:'el-icon-view',disabled:'single',clickname:'detail'},
+				{name:'导出',color:'warning',access:'/shop/Ysly/dumpdata.html',icon:'el-icon-download',disabled:'',clickname:'dumpdata'},
+			],
+			loading: false,
+			page_data: {
+				limit: 20,
+				page: 1,
+				total:20,
+			},
+			order:'',
+			sort:'',
+			ids: [],
+			single:true,
+			multiple:true,
+			search_visible:false,
+			list: [],
+			treeList:[],
+			ysfl_id: [],
+			updateInfo:{},
+			detailInfo:{},
+			exceldata:[],
+			dumppage:1,
+			ws:{},
+			dumpshow:false,
+			percentage:0,
+			filename:'',
+		}
+	},
+	methods:{
+		index(){
+			let param = {limit:this.page_data.limit,page:this.page_data.page,order:this.order,sort:this.sort}
+			Object.assign(param, this.searchData,this.urlobj)
+			this.loading = true
+			axios.post(base_url + '/Ysly/index',param).then(res => {
+				if(res.data.status == 200){
+					this.list = res.data.data.data
+					this.page_data.total = res.data.data.total
+					this.loading = false
+					if(this.page_data.page == 1){
+						this.treeList = res.data.sql_field_data.ysfl_ids
+						this.ysfl_id = res.data.sql_field_data.ysfl_ids
+					}
+				}else{
+					this.$message.error(res.data.msg);
+				}
+			})
+		},
+		updateExt(row,field){
+			if(row.ysly_id){
+				axios.post(base_url + '/Ysly/updateExt',{ysly_id:row.ysly_id,[field]:row[field]}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}
+		},
+		add(){
+			this.dialog.addDialogStatus = true
+		},
+		update(row){
+			let id = row.ysly_id ? row.ysly_id : this.ids.join(',')
+			axios.post(base_url + '/Ysly/getUpdateInfo',{ysly_id:id}).then(res => {
+				if(res.data.status == 200){
+					this.dialog.updateDialogStatus = true
+					this.updateInfo = res.data.data
+				}else{
+					this.$message.error(res.data.msg)
+				}
+			})
+		},
+		del(row){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				let ids = row.ysly_id ? row.ysly_id : this.ids.join(',')
+				axios.post(base_url + '/Ysly/delete',{ysly_id:ids}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+						this.index()
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}).catch(() => {})
+		},
+		detail(row){
+			this.dialog.detailDialogStatus = true
+			this.detailInfo = {ysly_id:row.ysly_id ? row.ysly_id : this.ids.join(',')}
+		},
+		dumpdata(){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				this.dumpshow = true
+				this.confirmdumpdata()
+			}).catch(() => {})
+		},
+		confirmdumpdata(){
+			let query = {page:this.dumppage,order:this.order,sort:this.sort}
+			Object.assign(query, this.searchData,{ysly_id:this.ids.join(',')},this.urlobj)
+			axios.post(base_url + '/Ysly/dumpdata',query).then(res => {
+				if(res.data.data && res.data.data.length > 0){
+					if(this.dumppage == 1){
+						this.exceldata.push(res.data.header)
+					}
+					res.data.data.forEach((item) => {
+						this.exceldata.push(Object.values(item))
+					})
+					this.percentage = res.data.percentage
+					this.filename = res.data.filename
+					this.ws = XLSX.utils.aoa_to_sheet(this.exceldata)
+					this.dumppage = this.dumppage + 1
+					this.confirmdumpdata()
+				}else{
+					let wb = XLSX.utils.book_new()
+					XLSX.utils.book_append_sheet(wb, this.ws)
+					XLSX.writeFile(wb, this.filename)
+					this.exceldata = []
+					this.dumpshow = false
+					this.dumppage = 1
+					this.percentage = 0
+				}
+			})
+		},
+		closedialog(){
+			this.dumpshow = false
+		},
+		selection(selection) {
+			this.ids = selection.map(item => item.ysly_id)
+			this.single = selection.length != 1
+			this.multiple = !selection.length
+		},
+		handleRowClick(row, rowIndex,event){
+			if(event.target.className !== 'el-input__inner'){
+				this.$refs.multipleTable.toggleRowSelection(row)
+			}
+		},
+		rowClass ({ row, rowIndex }) {
+			for(let i=0;i<this.ids.length;i++) {
+				if (row.ysly_id === this.ids[i]) {
+					return 'rowLight'
+				}
+			}
+		},
+		sortChange(val){
+			if(val.order == 'descending'){
+				this.order= 'desc'
+			}
+			if(val.order == 'ascending'){
+				this.order= 'asc'
+			}
+			this.sort = val.prop
+			this.index()
+		},
+		/** 转换菜单数据结构 */
+		normalizer(node) {
+			if (node.children && !node.children.length) {
+				delete node.children
+			}
+			return {
+				id: node.val,
+				label: node.key,
+				children: node.children
+			}
+		},
+		fn(method){
+			this[method](this.ids)
+		},
+	},
+	mounted(){
+		this.index()
+	},
+})
+</script>
+{/block}

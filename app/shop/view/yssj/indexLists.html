@@ -1,0 +1,267 @@
+{extend name='common/container'}
+{block name="content"}
+<div style="margin:0 15px 15px 15px;">
+<el-card shadow="never" style="min-height:650px;">
+<div v-if="search_visible" id="search" class="search">
+	<el-form ref="form" size="small" :model="searchData" inline>
+		<el-form-item label="关联房屋">
+			<select-page :is_clear="is_clear" url="/Yssj/getFcxx_id" :selectval.sync="searchData.fcxx_id"></select-page>
+		</el-form-item>
+		<el-form-item label="费用名称">
+			<el-input id="yssj_fymc" v-model="searchData.yssj_fymc"  style="width:150px;" placeholder="请输入费用名称"></el-input>
+		</el-form-item>
+		<el-form-item label="财务月份">
+			<el-input id="yssj_cwyf" v-model="searchData.yssj_cwyf"  style="width:150px;" placeholder="请输入财务月份"></el-input>
+		</el-form-item>
+		<el-form-item label="费用类型">
+			<el-select   style="width:150px" v-model="searchData.fylx_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in fylx_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="费用标准">
+			<el-select   style="width:150px" v-model="searchData.fybz_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in fybz_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="付款状态">
+			<el-select style="width:150px" v-model="searchData.yssj_stuats" filterable clearable placeholder="请选择">
+				<el-option key="0" label="已付款" value="1"></el-option>
+				<el-option key="1" label="未付款" value="0"></el-option>
+				<el-option key="2" label="已退款" value="2"></el-option>
+				<el-option key="3" label="转预存" value="3"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="住户名称">
+			<select-page :is_clear="is_clear" url="/Yssj/getMember_id" :selectval.sync="searchData.member_id"></select-page>
+		</el-form-item>
+		<el-form-item label="应收批次">
+			<select-page :is_clear="is_clear" url="/Yssj/getScys_id" :selectval.sync="searchData.scys_id"></select-page>
+		</el-form-item>
+		<el-form-item label="数据类型">
+			<el-select   style="width:150px" v-model="searchData.sjlx_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in sjlx_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="追收编号">
+			<el-select   style="width:150px" v-model="searchData.zjys_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in zjys_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="临收编号">
+			<el-select   style="width:150px" v-model="searchData.lsys_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in lsys_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="抄表批次">
+			<select-page :is_clear="is_clear" url="/Yssj/getCbpc_id" :selectval.sync="searchData.cbpc_id"></select-page>
+		</el-form-item>
+		<search-tool :search_data.sync="searchData" :is_clear.sync="is_clear" @refesh_list="index"></search-tool>
+	</el-form>
+</div>
+<div class="btn-group" style="margin-top:10px;margin-bottom:10px;">
+	<div>
+	</div>
+	<div><table-tool :search_visible.sync="search_visible"   @refesh_list="index"></table-tool></div>
+</div>
+<el-table :row-class-name="rowClass" @selection-change="selection"  @row-click="handleRowClick"  row-key="yssj_id"  :header-cell-style="{ background: '#eef1f6', color: '#606266' }" @sort-change='sortChange' v-loading="loading"  ref="multipleTable" border class="eltable" :data="list"  style="width: 100%">
+	<el-table-column align="center" type="selection" width="42"></el-table-column>
+	<el-table-column align="center"  property="fcxx_fjbh"  label="房屋资产" show-overflow-tooltip width="180">
+	</el-table-column>
+	<el-table-column align="center"  property="yssj_fymc"  label="费用名称" show-overflow-tooltip width="110">
+	</el-table-column>
+	<el-table-column align="center"  property="yssj_cwyf"  label="财务月份" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="yssj_kstime"  label="开始日期" show-overflow-tooltip width="110">
+		<template slot-scope="scope">
+			{{parseTime(scope.row.yssj_kstime,'{y}-{m}-{d}')}}
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="yssj_jztime"  label="截至日期" show-overflow-tooltip width="110">
+		<template slot-scope="scope">
+			{{parseTime(scope.row.yssj_jztime,'{y}-{m}-{d}')}}
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="yssj_fydj"  label="费用单价" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="yssj_ysje"  label="应收金额" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="fylx_name"  label="费用类型" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="fybz_name"  label="费用标准" show-overflow-tooltip width="110">
+	</el-table-column>
+	<el-table-column align="center"  property="yssj_stuats"  label="付款状态" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<el-tag type="success" v-if="scope.row.yssj_stuats == '1'" size="mini" effect="dark">已付款</el-tag>
+			<el-tag type="danger" v-if="scope.row.yssj_stuats == '0'" size="mini" effect="dark">未付款</el-tag>
+			<el-tag type="info" v-if="scope.row.yssj_stuats == '2'" size="mini" effect="dark">已退款</el-tag>
+			<el-tag type="primary" v-if="scope.row.yssj_stuats == '3'" size="mini" effect="dark">转预存</el-tag>
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="member_name"  label="客户名称" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="scys_id"  label="应收批次" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="lsys_id"  label="临收编号" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="cbpc_id"  label="抄表批次" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column :fixed="ismobile()?false:'right'" label="操作" align="center" width="190">
+		<template slot-scope="scope">
+			<div v-if="scope.row.yssj_id">
+				<el-button v-if="scope.row.yssj_cwsh != 2 && scope.row.yssj_stuats == 1 && checkPermission('/shop/Yssj/delete.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-delete" type="danger" @click="del(scope.row)" >撤销收款</el-button>
+			</div>
+		</template>
+	</el-table-column>
+</el-table>
+<Page :total="page_data.total" :page.sync="page_data.page" :limit.sync="page_data.limit" @pagination="index" />
+</el-card>
+
+<!--查看详情-->
+<Detail :info="detailInfo" :show.sync="dialog.detailDialogStatus" size="small" @refesh_list="index"></Detail>
+
+</div>
+
+{/block}
+{block name="script"}
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script src="__PUBLIC__/components/shop/yssj/detail.js?v=<?php echo rand(1000,9999)?>"></script>
+<script>
+new Vue({
+	el: '#app',
+	components:{
+	},
+	data: function() {
+		return {
+			dialog: {
+				detailDialogStatus : false,
+			},
+			searchData:{},
+			button_group:[
+			],
+			loading: false,
+			page_data: {
+				limit: 20,
+				page: 1,
+				total:20,
+			},
+			order:'',
+			sort:'',
+			ids: [],
+			single:true,
+			multiple:true,
+			search_visible:false,
+			list: [],
+			fylx_id: [],
+			fybz_id: [],
+			sjlx_id: [],
+			zjys_id: [],
+			lsys_id: [],
+			detailInfo:{},
+			is_clear:false,
+		}
+	},
+	methods:{
+		index(){
+			let param = {limit:this.page_data.limit,page:this.page_data.page,order:this.order,sort:this.sort}
+			Object.assign(param, this.searchData,this.urlobj)
+			this.loading = true
+			axios.post(base_url + '/Yssj/indexLists',param).then(res => {
+				if(res.data.status == 200){
+					this.list = res.data.data.data
+					this.page_data.total = res.data.data.total
+					this.loading = false
+					if(this.page_data.page == 1){
+						this.fylx_id = res.data.sql_field_data.fylx_ids
+						this.fybz_id = res.data.sql_field_data.fybz_ids
+						this.sjlx_id = res.data.sql_field_data.sjlx_ids
+						this.zjys_id = res.data.sql_field_data.zjys_ids
+						this.lsys_id = res.data.sql_field_data.lsys_ids
+					}
+				}else{
+					this.$message.error(res.data.msg);
+				}
+			})
+		},
+		updateExt(row,field){
+			if(row.yssj_id){
+				axios.post(base_url + '/Yssj/updateExt',{yssj_id:row.yssj_id,[field]:row[field]}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}
+		},
+		detail(row){
+			this.dialog.detailDialogStatus = true
+			this.detailInfo = {yssj_id:row.yssj_id ? row.yssj_id : this.ids.join(',')}
+		},
+		indexLists(){
+			let param = {limit:this.page_data.limit,page:this.page_data.page,order:this.order,sort:this.sort}
+			Object.assign(param, this.searchData,this.urlobj)
+			this.loading = true
+			axios.post(base_url + '/Yssj/indexLists',param).then(res => {
+				if(res.data.status == 200){
+					this.list = res.data.data.data
+					this.page_data.total = res.data.data.total
+					this.loading = false
+				}else{
+					this.$message.error(res.data.msg);
+				}
+			})
+		},
+		del(row){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				let ids = row.yssj_id ? row.yssj_id : this.ids.join(',')
+				axios.post(base_url + '/Yssj/delete',{yssj_id:ids}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+						this.index()
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}).catch(() => {})
+		},
+		selection(selection) {
+			this.ids = selection.map(item => item.yssj_id)
+			this.single = selection.length != 1
+			this.multiple = !selection.length
+		},
+		handleRowClick(row, rowIndex,event){
+			if(event.target.className !== 'el-input__inner'){
+				this.$refs.multipleTable.toggleRowSelection(row)
+			}
+		},
+		rowClass ({ row, rowIndex }) {
+			for(let i=0;i<this.ids.length;i++) {
+				if (row.yssj_id === this.ids[i]) {
+					return 'rowLight'
+				}
+			}
+		},
+		sortChange(val){
+			if(val.order == 'descending'){
+				this.order= 'desc'
+			}
+			if(val.order == 'ascending'){
+				this.order= 'asc'
+			}
+			this.sort = val.prop
+			this.index()
+		},
+		fn(method){
+			this[method](this.ids)
+		},
+	},
+	mounted(){
+		this.index()
+	},
+})
+</script>
+{/block}

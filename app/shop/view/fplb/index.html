@@ -1,0 +1,236 @@
+{extend name='common/container'}
+{block name="content"}
+<div style="margin:0 15px 15px 15px;">
+<el-row :gutter="10">
+<el-col :span="4" class="hidden-sm-and-down">
+	<left-tree :treelist="treeList" :search_data.sync="searchData" fieldname="fylx_id" @refesh_list="index"></left-tree>
+</el-col>
+<el-col :xs="24" :sm="24" :md="20" :lg="20">
+<el-card shadow="never" style="min-height:650px;">
+<div v-if="search_visible" id="search" class="search">
+	<el-form ref="form" size="small" :model="searchData" inline>
+		<el-form-item label="费用类型">
+			<el-select   style="width:150px" v-model="searchData.fylx_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in fylx_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="费用名称">
+			<el-input id="fydy_name" v-model="searchData.fydy_name"  style="width:150px;" placeholder="请输入费用名称"></el-input>
+		</el-form-item>
+		<el-form-item label="费用类别">
+			<el-select   style="width:150px" v-model="searchData.fylb_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in fylb_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="计费类型">
+			<el-select   style="width:150px" v-model="searchData.jflx_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in jflx_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<search-tool :search_data.sync="searchData" @refesh_list="index"></search-tool>
+	</el-form>
+</div>
+<div class="btn-group" style="margin-top:10px;margin-bottom:10px;">
+	<div>
+	</div>
+	<div><table-tool :search_visible.sync="search_visible"   @refesh_list="index"></table-tool></div>
+</div>
+<el-table :row-class-name="rowClass" @selection-change="selection"  @row-click="handleRowClick"  row-key="fydy_id"  :header-cell-style="{ background: '#eef1f6', color: '#606266' }" @sort-change='sortChange' v-loading="loading"  ref="multipleTable" border class="eltable" :data="list"  style="width: 100%">
+	<el-table-column align="center" type="selection" width="42"></el-table-column>
+	<el-table-column align="center" type = '' property="fydy_id"  label="编号"  width="70">
+	</el-table-column>
+	<el-table-column align="center"  property="fylx_name"  label="费用类型" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="fydy_name"  label="费用名称" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="fylb_name"  label="费用类别" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="fydw_name"  label="费用单位" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="fydy_ysyf"  label="应收月份" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<span v-if="scope.row.fydy_ysyf == '1'" >计费开始日期所在月</span>
+			<span v-if="scope.row.fydy_ysyf == '0'" >计费结束日期所在月</span>
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="fydy_ysr"  label="应收日份" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<span v-if="scope.row.fydy_ysr == '1'" >应收月月末日期</span>
+			<span v-if="scope.row.fydy_ysr == '0'" >指定日期</span>
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="fydy_zdr"  label="指定日期" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column :fixed="ismobile()?false:'right'" label="操作" align="center" width="190">
+		<template slot-scope="scope">
+			<div v-if="scope.row.fydy_id">
+				<el-button v-if="checkPermission('/shop/Fplb/jumpUrl.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-plus" type="primary" @click="jumpUrl(scope.row)" >费用分配</el-button>
+			</div>
+		</template>
+	</el-table-column>
+</el-table>
+<Page :total="page_data.total" :page.sync="page_data.page" :limit.sync="page_data.limit" @pagination="index" />
+</el-card>
+</el-col>
+</el-row>
+
+<!--添加-->
+<Add :show.sync="dialog.addDialogStatus" size="small" @refesh_list="index"></Add>
+<!--修改-->
+<Update :info="updateInfo" :show.sync="dialog.updateDialogStatus" size="small" @refesh_list="index"></Update>
+<!--查看详情-->
+<Detail :info="detailInfo" :show.sync="dialog.detailDialogStatus" size="small" @refesh_list="index"></Detail>
+<!--费用分配-->
+<JumpUrl :info="jumpUrlInfo" :show.sync="dialog.jumpUrlDialogStatus" size="small"></JumpUrl>
+
+</div>
+
+{/block}
+{block name="script"}
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script src="__PUBLIC__/components/shop/fplb/add.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/fplb/update.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/fplb/detail.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/fplb/jumpUrl.js?v=<?php echo rand(1000,9999)?>"></script>
+<script>
+new Vue({
+	el: '#app',
+	components:{
+	},
+	data: function() {
+		return {
+			dialog: {
+				addDialogStatus : false,
+				updateDialogStatus : false,
+				detailDialogStatus : false,
+				jumpUrlDialogStatus : false,
+			},
+			searchData:{},
+			button_group:[
+			],
+			loading: false,
+			page_data: {
+				limit: 20,
+				page: 1,
+				total:20,
+			},
+			order:'',
+			sort:'',
+			ids: [],
+			single:true,
+			multiple:true,
+			search_visible:false,
+			list: [],
+			treeList:[],
+			fylx_id: [],
+			fylb_id: [],
+			jflx_id: [],
+			updateInfo:{},
+			detailInfo:{},
+			jumpUrlInfo:{},
+		}
+	},
+	methods:{
+		index(){
+			let param = {limit:this.page_data.limit,page:this.page_data.page,order:this.order,sort:this.sort}
+			Object.assign(param, this.searchData,this.urlobj)
+			this.loading = true
+			axios.post(base_url + '/Fplb/index',param).then(res => {
+				if(res.data.status == 200){
+					this.list = res.data.data.data
+					this.page_data.total = res.data.data.total
+					this.loading = false
+					if(this.page_data.page == 1){
+						this.treeList = res.data.sql_field_data.fylx_ids
+						this.fylx_id = res.data.sql_field_data.fylx_ids
+						this.fylb_id = res.data.sql_field_data.fylb_ids
+						this.jflx_id = res.data.sql_field_data.jflx_ids
+					}
+				}else{
+					this.$message.error(res.data.msg);
+				}
+			})
+		},
+		add(){
+			this.dialog.addDialogStatus = true
+		},
+		update(row){
+			let id = row.fydy_id ? row.fydy_id : this.ids.join(',')
+			axios.post(base_url + '/Fplb/getUpdateInfo',{fydy_id:id}).then(res => {
+				if(res.data.status == 200){
+					this.dialog.updateDialogStatus = true
+					this.updateInfo = res.data.data
+				}else{
+					this.$message.error(res.data.msg)
+				}
+			})
+		},
+		del(row){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				let ids = row.fydy_id ? row.fydy_id : this.ids.join(',')
+				axios.post(base_url + '/Fplb/delete',{fydy_id:ids}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+						this.index()
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}).catch(() => {})
+		},
+		detail(row){
+			this.dialog.detailDialogStatus = true
+			this.detailInfo = {fydy_id:row.fydy_id ? row.fydy_id : this.ids.join(',')}
+		},
+		jumpUrl(row){
+			let ids = row.fydy_id ? row.fydy_id : this.ids.join(',')
+			let data = {}
+			this.list.forEach((item,i) => {
+				if(item.fydy_id == ids){
+					data = this.list[i]
+				}
+			})
+			this.jumpUrlInfo = data
+			this.dialog.jumpUrlDialogStatus = true
+		},
+		selection(selection) {
+			this.ids = selection.map(item => item.fydy_id)
+			this.single = selection.length != 1
+			this.multiple = !selection.length
+		},
+		handleRowClick(row, rowIndex,event){
+			if(event.target.className !== 'el-input__inner'){
+				this.$refs.multipleTable.toggleRowSelection(row)
+			}
+		},
+		rowClass ({ row, rowIndex }) {
+			for(let i=0;i<this.ids.length;i++) {
+				if (row.fydy_id === this.ids[i]) {
+					return 'rowLight'
+				}
+			}
+		},
+		sortChange(val){
+			if(val.order == 'descending'){
+				this.order= 'desc'
+			}
+			if(val.order == 'ascending'){
+				this.order= 'asc'
+			}
+			this.sort = val.prop
+			this.index()
+		},
+		fn(method){
+			this[method](this.ids)
+		},
+	},
+	mounted(){
+		this.index()
+	},
+})
+</script>
+{/block}

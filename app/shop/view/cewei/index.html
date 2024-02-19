@@ -1,0 +1,359 @@
+{extend name='common/container'}
+{block name="content"}
+
+<el-tabs class="list_tab" v-model="tabPosition" type="card" @tab-click="selectTab" style="background-color:#fff; padding-top:20px;">
+	<el-tab-pane v-for="(item,i) in tccd_id" :key="i" :label="item.key" :name="item.val.toString()"></el-tab-pane>
+</el-tabs>
+
+<div style="margin:0 15px 15px 15px;">
+<el-row :gutter="10">
+<el-col :span="4" class="hidden-sm-and-down">
+	<left-tree :treelist="treeList" :search_data.sync="searchData" fieldname="cwqy_id" @refesh_list="index"></left-tree>
+</el-col>
+<el-col :xs="24" :sm="24" :md="20" :lg="20">
+<el-card shadow="never" style="min-height:650px;">
+<div v-if="search_visible" id="search" class="search">
+	<el-form ref="form" size="small" :model="searchData" inline>
+		<el-form-item label="车位编号">
+			<el-input id="cewei_name" v-model="searchData.cewei_name"  style="width:150px;" placeholder="请输入车位编号"></el-input>
+		</el-form-item>
+		<el-form-item label="停车场地">
+			<el-select   style="width:150px" v-model="searchData.tccd_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in tccd_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="车位区域">
+			<el-select   style="width:150px" v-model="searchData.cwqy_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in cwqy_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="车位状态">
+			<el-select   style="width:150px" v-model="searchData.cwzt_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in cwzt_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="资产编号">
+			<el-input id="cewei_zcbh" v-model="searchData.cewei_zcbh"  style="width:150px;" placeholder="请输入资产编号"></el-input>
+		</el-form-item>
+		<el-form-item label="产权所属">
+			<el-select  remote :remote-method="remoteMemberidList"  style="width:150px" v-model="searchData.member_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in member_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="备注信息">
+			<el-input id="cewei_remarks" v-model="searchData.cewei_remarks"  style="width:150px;" placeholder="请输入备注信息"></el-input>
+		</el-form-item>
+		<el-form-item label="车位类型">
+			<el-select   style="width:150px" v-model="searchData.cwlx_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in cwlx_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<search-tool :search_data.sync="searchData" @refesh_list="index"></search-tool>
+	</el-form>
+</div>
+<div class="btn-group" style="margin-top:10px;margin-bottom:10px;">
+	<div>
+		<el-button v-for="item in button_group" :key="item.access" v-if="checkPermission(item.access,'{:implode(',',session('shop.access'))}','{:session('shop.role_id')}',[1])" :disabled="$data[item.disabled]" :type="item.color" size="mini" :icon="item.icon" @click="fn(item.clickname)">
+			<span v-if="item.batch" v-text="$data['batchUpdateStatus']?'批量保存':'批量编辑'"></span>
+			<span v-else v-text="item.name"></span>
+		</el-button>
+	</div>
+	<div><table-tool :search_visible.sync="search_visible"   @refesh_list="index"></table-tool></div>
+</div>
+<el-table :row-class-name="rowClass" @selection-change="selection"  @row-click="handleRowClick"  row-key="cewei_id"  :header-cell-style="{ background: '#eef1f6', color: '#606266' }" @sort-change='sortChange' v-loading="loading"  ref="multipleTable" border class="eltable" :data="list"  style="width: 100%">
+	<el-table-column align="center" type="selection" width="42"></el-table-column>
+	<el-table-column align="center"  property="cewei_name"  label="车位编号" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="tccd_id"  label="停车场地" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="cwqy_id"  label="车位区域" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="cwzt_id"  label="车位状态" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="cewei_cwmj"  label="车位面积" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="cewei_start_time"  label="开始日期" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			{{parseTime(scope.row.cewei_start_time,'{y}-{m}-{d}')}}
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="cewei_end_time"  label="结束日期" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			{{parseTime(scope.row.cewei_end_time,'{y}-{m}-{d}')}}
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="cewei_zcbh"  label="资产编号" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="member_id"  label="产权所属" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="cwlx_id"  label="车位类型" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="px"  label="排序" show-overflow-tooltip width="">
+		<template class="sort" slot-scope="scope">
+			<el-input @blur.stop="updateExt(scope.row,'px')"  size="mini" placeholder="排序" v-model="scope.row.px"></el-input>
+		</template>
+	</el-table-column>
+	<el-table-column :fixed="ismobile()?false:'right'" label="操作" align="center" width="190">
+		<template slot-scope="scope">
+			<div v-if="scope.row.cewei_id">
+				<el-button v-if="checkPermission('/shop/Cewei/update.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-edit" type="primary" @click="update(scope.row)" >修改</el-button>
+				<el-button v-if="checkPermission('/shop/Cewei/delete.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-delete" type="danger" @click="del(scope.row)" >删除</el-button>
+			</div>
+		</template>
+	</el-table-column>
+</el-table>
+<Page :total="page_data.total" :page.sync="page_data.page" :limit.sync="page_data.limit" @pagination="index" />
+</el-card>
+</el-col>
+</el-row>
+
+<!--添加-->
+<Add :show.sync="dialog.addDialogStatus" size="small" @refesh_list="index"></Add>
+<!--修改-->
+<Update :info="updateInfo" :show.sync="dialog.updateDialogStatus" size="small" @refesh_list="index"></Update>
+<!--资产关联-->
+<Zcgl :info="zcglInfo" :show.sync="dialog.zcglDialogStatus" size="small" @refesh_list="index"></Zcgl>
+<!--导入弹窗-->
+<import :show.sync="dialog.importDataDialogStatus" import_url='/Cewei/importData' @refesh_list="index"></import>
+<!--更改属性-->
+<Sxupdate :info="sxupdateInfo" :show.sync="dialog.sxupdateDialogStatus" size="small" @refesh_list="index"></Sxupdate>
+<!--导出弹窗-->
+<el-dialog title="导出进度条" :visible="dumpshow" :before-close="closedialog" width="500px">
+	<el-progress :percentage="percentage"></el-progress>
+</el-dialog>
+
+</div>
+
+{/block}
+{block name="script"}
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script src="__PUBLIC__/assets/libs/xlsx/xlsx.core.min.js"></script>
+<script src="__PUBLIC__/components/shop/cewei/add.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/cewei/update.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/cewei/zcgl.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/cewei/sxupdate.js?v=<?php echo rand(1000,9999)?>"></script>
+<script>
+new Vue({
+	el: '#app',
+	components:{
+	},
+	data: function() {
+		return {
+			dialog: {
+				addDialogStatus : false,
+				updateDialogStatus : false,
+				zcglDialogStatus : false,
+				importDataDialogStatus : false,
+				sxupdateDialogStatus : false,
+			},
+			searchData:{},
+			button_group:[
+				{name:'添加',color:'success',access:'/shop/Cewei/add.html',icon:'el-icon-plus',disabled:'',clickname:'add'},
+				{name:'修改',color:'primary',access:'/shop/Cewei/update.html',icon:'el-icon-edit',disabled:'single',clickname:'update'},
+				{name:'删除',color:'danger',access:'/shop/Cewei/delete.html',icon:'el-icon-delete',disabled:'multiple',clickname:'del'},
+				{name:'资产关联',color:'success',access:'/shop/Cewei/zcgl.html',icon:'el-icon-edit',disabled:'single',clickname:'zcgl'},
+				{name:'导入',color:'warning',access:'/shop/Cewei/importData.html',icon:'el-icon-upload',disabled:'',clickname:'importData'},
+				{name:'导出',color:'warning',access:'/shop/Cewei/dumpdata.html',icon:'el-icon-download',disabled:'',clickname:'dumpdata'},
+				{name:'更改属性',color:'primary',access:'/shop/Cewei/sxupdate.html',icon:'el-icon-edit',disabled:'multiple',clickname:'sxupdate'},
+			],
+			loading: false,
+			page_data: {
+				limit: 200,
+				page: 1,
+				total:20,
+			},
+			order:'',
+			sort:'',
+			ids: [],
+			single:true,
+			multiple:true,
+			search_visible:false,
+			list: [],
+			treeList:[],
+			tccd_id: [],
+			cwqy_id: [],
+			cwzt_id: [],
+			cwlx_id: [],
+			member_id: [],
+			updateInfo:{},
+			zcglInfo:{},
+			sxupdateInfo:{},
+			exceldata:[],
+			dumppage:1,
+			ws:{},
+			dumpshow:false,
+			percentage:0,
+			filename:'',
+			tabPosition:'10000',
+		}
+	},
+	methods:{
+		remoteMemberidList(val){
+			axios.post(base_url + '/Cewei/remoteMemberidList',{queryString:val}).then(res => {
+				if(res.data.status == 200){
+					this.member_id = res.data.data
+				}
+			})
+		},
+		index(){
+			let param = {limit:this.page_data.limit,page:this.page_data.page,order:this.order,sort:this.sort}
+			Object.assign(param, this.searchData,this.urlobj)
+			this.loading = true
+			axios.post(base_url + '/Cewei/index',param).then(res => {
+				if(res.data.status == 200){
+					this.list = res.data.data.data
+					this.page_data.total = res.data.data.total
+					this.loading = false
+					if(this.page_data.page == 1){
+						this.treeList = res.data.sql_field_data.cwqy_ids
+						this.tccd_id = res.data.sql_field_data.tccd_ids
+						this.cwqy_id = res.data.sql_field_data.cwqy_ids
+						this.cwzt_id = res.data.sql_field_data.cwzt_ids
+						this.cwlx_id = res.data.sql_field_data.cwlx_ids
+					}
+				}else{
+					this.$message.error(res.data.msg);
+				}
+			})
+		},
+		updateExt(row,field){
+			if(row.cewei_id){
+				axios.post(base_url + '/Cewei/updateExt',{cewei_id:row.cewei_id,[field]:row[field]}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}
+		},
+		add(){
+			this.dialog.addDialogStatus = true
+		},
+		update(row){
+			let id = row.cewei_id ? row.cewei_id : this.ids.join(',')
+			axios.post(base_url + '/Cewei/getUpdateInfo',{cewei_id:id}).then(res => {
+				if(res.data.status == 200){
+					this.dialog.updateDialogStatus = true
+					this.updateInfo = res.data.data
+				}else{
+					this.$message.error(res.data.msg)
+				}
+			})
+		},
+		del(row){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				let ids = row.cewei_id ? row.cewei_id : this.ids.join(',')
+				axios.post(base_url + '/Cewei/delete',{cewei_id:ids}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+						this.index()
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}).catch(() => {})
+		},
+		zcgl(row){
+			let id = row.cewei_id ? row.cewei_id : this.ids.join(',')
+			axios.post(base_url + '/Cewei/getZcglInfo',{cewei_id:id}).then(res => {
+				if(res.data.status == 200){
+					this.dialog.zcglDialogStatus = true
+					this.zcglInfo = res.data.data
+				}else{
+					this.$message.error(res.data.msg)
+				}
+			})
+		},
+		importData(){
+			this.dialog.importDataDialogStatus = true
+		},
+		dumpdata(){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				this.dumpshow = true
+				this.confirmdumpdata()
+			}).catch(() => {})
+		},
+		confirmdumpdata(){
+			let query = {page:this.dumppage,order:this.order,sort:this.sort}
+			Object.assign(query, this.searchData,{cewei_id:this.ids.join(',')},this.urlobj)
+			axios.post(base_url + '/Cewei/dumpdata',query).then(res => {
+				if(res.data.data && res.data.data.length > 0){
+					if(this.dumppage == 1){
+						this.exceldata.push(res.data.header)
+					}
+					res.data.data.forEach((item) => {
+						this.exceldata.push(Object.values(item))
+					})
+					this.percentage = res.data.percentage
+					this.filename = res.data.filename
+					this.ws = XLSX.utils.aoa_to_sheet(this.exceldata)
+					this.dumppage = this.dumppage + 1
+					this.confirmdumpdata()
+				}else{
+					let wb = XLSX.utils.book_new()
+					XLSX.utils.book_append_sheet(wb, this.ws)
+					XLSX.writeFile(wb, this.filename)
+					this.exceldata = []
+					this.dumpshow = false
+					this.dumppage = 1
+					this.percentage = 0
+				}
+			})
+		},
+		closedialog(){
+			this.dumpshow = false
+		},
+		sxupdate(row){
+			this.dialog.sxupdateDialogStatus = true
+			this.sxupdateInfo = {cewei_id:row.cewei_id ? row.cewei_id : this.ids.join(',')}
+		},
+		selection(selection) {
+			this.ids = selection.map(item => item.cewei_id)
+			this.single = selection.length != 1
+			this.multiple = !selection.length
+		},
+		handleRowClick(row, rowIndex,event){
+			if(event.target.className !== 'el-input__inner'){
+				this.$refs.multipleTable.toggleRowSelection(row)
+			}
+		},
+		rowClass ({ row, rowIndex }) {
+			for(let i=0;i<this.ids.length;i++) {
+				if (row.cewei_id === this.ids[i]) {
+					return 'rowLight'
+				}
+			}
+		},
+		sortChange(val){
+			if(val.order == 'descending'){
+				this.order= 'desc'
+			}
+			if(val.order == 'ascending'){
+				this.order= 'asc'
+			}
+			this.sort = val.prop
+			this.index()
+		},
+		selectTab(tab,event){
+			this.searchData.tccd_id = this.tabPosition
+			this.index()
+		},
+		fn(method){
+			this[method](this.ids)
+		},
+	},
+	mounted(){
+		this.index()
+	},
+})
+</script>
+{/block}

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<head>
+ <meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta name="MobileOptimized" content="320">
+    <meta name="robots" content="all">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="format-detection" content="telephone=no">
+<script src="/chatgpt/vue.global.js"></script>
+<script src="/chatgpt/axios.min.js"></script>
+<style>
+body{ font-size:12px; color:#999;
+}
+textarea{font-size:14px; color:#000;}
+</style>
+</head>
+
+<body>
+<div id="app" style="display: flex;flex-flow: column;">
+    <div style="display: flex;justify-content: center;align-items: center;">
+    	<textarea name="res" id="res" readonly style="width:100%; height:300px; background-color:#F7FEFF; border:1px solid #CCC; padding:10px;">{{res}}</textarea>
+    </div>
+    <div style="display: flex;justify-content: center;align-items: center; margin-top:10px;">
+        <textarea type="text" v-model="info" style="width:100%; height:60px; background-color:#FFF9F9; border:1px solid #CCC; padding:10px;"></textarea>
+       
+    </div>
+    <div style="display: flex;justify-content: center;align-items: center; margin-top:10px;">
+        <button v-on:click="ask()" style="width:100%;height: 51px; background-color:#FFF9F9; border:1px solid #CCC;">提问</button>
+    </div>
+    <div style="display: flex;justify-content: center;align-items: center; margin-top:10px;">
+        佳木斯九福网络科技有限公司
+    </div>
+</div>
+    
+</body>
+<script>
+    const { createApp } = Vue
+    createApp({
+        data() {
+            return {
+                info: 'Hello 你知道佳木斯九福网络科技公司吗？',
+                res: '请在下方表单中输入你的问题',
+                api: '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'
+            }
+        },
+        methods: {
+            ask() {
+                this.res = 'chatGPT正在思考中,请稍等,如果用户访问高峰时刻，可能会出现卡顿.....'
+                axios.post('https://api.openai.com/v1/completions', {
+                    prompt: this.info, max_tokens: 2048, model: "text-davinci-003"
+                }, {
+                    headers: { 'content-type': 'application/json', 'Authorization': 'Bearer ' + this.api }
+                }).then(response => { this.res = response.data.choices[0].text })
+            }
+        }
+    }).mount('#app')
+</script>

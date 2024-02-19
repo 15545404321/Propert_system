@@ -1,0 +1,290 @@
+{extend name='common/container'}
+{block name="content"}
+<div style="margin:0 15px 15px 15px;">
+<el-card shadow="never" style="min-height:650px;">
+<div v-if="search_visible" id="search" class="search">
+	<el-form ref="form" size="small" :model="searchData" inline>
+		<el-form-item label="车牌号">
+			<el-input id="car_name" v-model="searchData.car_name"  style="width:150px;" placeholder="请输入车牌号"></el-input>
+		</el-form-item>
+		<el-form-item label="车辆车主">
+			<el-select  remote :remote-method="remoteMemberidList"  style="width:150px" v-model="searchData.member_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in member_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="车辆性质">
+			<el-select style="width:150px" v-model="searchData.car_type" filterable clearable placeholder="请选择">
+				<el-option key="0" label="固定车辆" value="1"></el-option>
+				<el-option key="1" label="临时车辆" value="2"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="品牌型号">
+			<el-input id="car_ppxh" v-model="searchData.car_ppxh"  style="width:150px;" placeholder="请输入品牌型号"></el-input>
+		</el-form-item>
+		<search-tool :search_data.sync="searchData" @refesh_list="index"></search-tool>
+	</el-form>
+</div>
+<div class="btn-group" style="margin-top:10px;margin-bottom:10px;">
+	<div>
+		<el-button v-for="item in button_group" :key="item.access" v-if="checkPermission(item.access,'{:implode(',',session('shop.access'))}','{:session('shop.role_id')}',[1])" :disabled="$data[item.disabled]" :type="item.color" size="mini" :icon="item.icon" @click="fn(item.clickname)">
+			<span v-if="item.batch" v-text="$data['batchUpdateStatus']?'批量保存':'批量编辑'"></span>
+			<span v-else v-text="item.name"></span>
+		</el-button>
+	</div>
+	<div><table-tool :search_visible.sync="search_visible"   @refesh_list="index"></table-tool></div>
+</div>
+<el-table :row-class-name="rowClass" @selection-change="selection"  @row-click="handleRowClick"  row-key="car_id"  :header-cell-style="{ background: '#eef1f6', color: '#606266' }" @sort-change='sortChange' v-loading="loading"  ref="multipleTable" border class="eltable" :data="list"  style="width: 100%">
+	<el-table-column align="center" type="selection" width="42"></el-table-column>
+	<el-table-column align="center" type = '' property="car_id"  label="编号"  width="70">
+	</el-table-column>
+	<el-table-column align="center"  property="car_name"  label="车牌号" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="member_id"  label="车辆车主" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="car_type"  label="车辆性质" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<el-tag type="success" v-if="scope.row.car_type == '1'" size="mini" effect="dark">固定车辆</el-tag>
+			<el-tag type="info" v-if="scope.row.car_type == '2'" size="mini" effect="dark">临时车辆</el-tag>
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="car_ppxh"  label="品牌型号" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="car_addtime"  label="录入时间" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			{{parseTime(scope.row.car_addtime)}}
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="car_endtime"  label="到期时间" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			{{parseTime(scope.row.car_endtime,'{y}-{m}-{d}')}}
+		</template>
+	</el-table-column>
+	<el-table-column :fixed="ismobile()?false:'right'" label="操作" align="center" width="270">
+		<template slot-scope="scope">
+			<div v-if="scope.row.car_id">
+				<el-button v-if="checkPermission('/shop/Car/update.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-edit" type="primary" @click="update(scope.row)" >修改</el-button>
+				<el-button v-if="checkPermission('/shop/Car/delete.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-delete" type="danger" @click="del(scope.row)" >删除</el-button>
+				<el-button v-if="checkPermission('/shop/Car/zcgl.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-edit" type="primary" @click="zcgl(scope.row)" >资产关联</el-button>
+			</div>
+		</template>
+	</el-table-column>
+</el-table>
+<Page :total="page_data.total" :page.sync="page_data.page" :limit.sync="page_data.limit" @pagination="index" />
+</el-card>
+
+<!--添加-->
+<Add :show.sync="dialog.addDialogStatus" size="small" @refesh_list="index"></Add>
+<!--修改-->
+<Update :info="updateInfo" :show.sync="dialog.updateDialogStatus" size="small" @refesh_list="index"></Update>
+<!--资产关联-->
+<Zcgl :info="zcglInfo" :show.sync="dialog.zcglDialogStatus" size="small" @refesh_list="index"></Zcgl>
+<!--导出弹窗-->
+<el-dialog title="导出进度条" :visible="dumpshow" :before-close="closedialog" width="500px">
+	<el-progress :percentage="percentage"></el-progress>
+</el-dialog>
+
+</div>
+
+{/block}
+{block name="script"}
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script src="__PUBLIC__/assets/libs/xlsx/xlsx.core.min.js"></script>
+<script src="__PUBLIC__/components/shop/car/add.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/car/update.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/car/zcgl.js?v=<?php echo rand(1000,9999)?>"></script>
+<script>
+new Vue({
+	el: '#app',
+	components:{
+	},
+	data: function() {
+		return {
+			dialog: {
+				addDialogStatus : false,
+				updateDialogStatus : false,
+				zcglDialogStatus : false,
+			},
+			searchData:{},
+			button_group:[
+				{name:'添加',color:'success',access:'/shop/Car/add.html',icon:'el-icon-plus',disabled:'',clickname:'add'},
+				{name:'修改',color:'primary',access:'/shop/Car/update.html',icon:'el-icon-edit',disabled:'single',clickname:'update'},
+				{name:'删除',color:'danger',access:'/shop/Car/delete.html',icon:'el-icon-delete',disabled:'multiple',clickname:'del'},
+				{name:'导出',color:'warning',access:'/shop/Car/dumpdata.html',icon:'el-icon-download',disabled:'',clickname:'dumpdata'},
+				{name:'资产关联',color:'primary',access:'/shop/Car/zcgl.html',icon:'el-icon-edit',disabled:'single',clickname:'zcgl'},
+			],
+			loading: false,
+			page_data: {
+				limit: 20,
+				page: 1,
+				total:20,
+			},
+			order:'',
+			sort:'',
+			ids: [],
+			single:true,
+			multiple:true,
+			search_visible:false,
+			list: [],
+			member_id: [],
+			updateInfo:{},
+			zcglInfo:{},
+			exceldata:[],
+			dumppage:1,
+			ws:{},
+			dumpshow:false,
+			percentage:0,
+			filename:'',
+		}
+	},
+	methods:{
+		remoteMemberidList(val){
+			axios.post(base_url + '/Car/remoteMemberidList',{queryString:val}).then(res => {
+				if(res.data.status == 200){
+					this.member_id = res.data.data
+				}
+			})
+		},
+		index(){
+			let param = {limit:this.page_data.limit,page:this.page_data.page,order:this.order,sort:this.sort}
+			Object.assign(param, this.searchData,this.urlobj)
+			this.loading = true
+			axios.post(base_url + '/Car/index',param).then(res => {
+				if(res.data.status == 200){
+					this.list = res.data.data.data
+					this.page_data.total = res.data.data.total
+					this.loading = false
+				}else{
+					this.$message.error(res.data.msg);
+				}
+			})
+		},
+		updateExt(row,field){
+			if(row.car_id){
+				axios.post(base_url + '/Car/updateExt',{car_id:row.car_id,[field]:row[field]}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}
+		},
+		add(){
+			this.dialog.addDialogStatus = true
+		},
+		update(row){
+			let id = row.car_id ? row.car_id : this.ids.join(',')
+			axios.post(base_url + '/Car/getUpdateInfo',{car_id:id}).then(res => {
+				if(res.data.status == 200){
+					this.dialog.updateDialogStatus = true
+					this.updateInfo = res.data.data
+				}else{
+					this.$message.error(res.data.msg)
+				}
+			})
+		},
+		del(row){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				let ids = row.car_id ? row.car_id : this.ids.join(',')
+				axios.post(base_url + '/Car/delete',{car_id:ids}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+						this.index()
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}).catch(() => {})
+		},
+		dumpdata(){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				this.dumpshow = true
+				this.confirmdumpdata()
+			}).catch(() => {})
+		},
+		confirmdumpdata(){
+			let query = {page:this.dumppage,order:this.order,sort:this.sort}
+			Object.assign(query, this.searchData,{car_id:this.ids.join(',')},this.urlobj)
+			axios.post(base_url + '/Car/dumpdata',query).then(res => {
+				if(res.data.data && res.data.data.length > 0){
+					if(this.dumppage == 1){
+						this.exceldata.push(res.data.header)
+					}
+					res.data.data.forEach((item) => {
+						this.exceldata.push(Object.values(item))
+					})
+					this.percentage = res.data.percentage
+					this.filename = res.data.filename
+					this.ws = XLSX.utils.aoa_to_sheet(this.exceldata)
+					this.dumppage = this.dumppage + 1
+					this.confirmdumpdata()
+				}else{
+					let wb = XLSX.utils.book_new()
+					XLSX.utils.book_append_sheet(wb, this.ws)
+					XLSX.writeFile(wb, this.filename)
+					this.exceldata = []
+					this.dumpshow = false
+					this.dumppage = 1
+					this.percentage = 0
+				}
+			})
+		},
+		closedialog(){
+			this.dumpshow = false
+		},
+		zcgl(row){
+			let id = row.car_id ? row.car_id : this.ids.join(',')
+			axios.post(base_url + '/Car/getZcglInfo',{car_id:id}).then(res => {
+				if(res.data.status == 200){
+					this.dialog.zcglDialogStatus = true
+					this.zcglInfo = res.data.data
+				}else{
+					this.$message.error(res.data.msg)
+				}
+			})
+		},
+		selection(selection) {
+			this.ids = selection.map(item => item.car_id)
+			this.single = selection.length != 1
+			this.multiple = !selection.length
+		},
+		handleRowClick(row, rowIndex,event){
+			if(event.target.className !== 'el-input__inner'){
+				this.$refs.multipleTable.toggleRowSelection(row)
+			}
+		},
+		rowClass ({ row, rowIndex }) {
+			for(let i=0;i<this.ids.length;i++) {
+				if (row.car_id === this.ids[i]) {
+					return 'rowLight'
+				}
+			}
+		},
+		sortChange(val){
+			if(val.order == 'descending'){
+				this.order= 'desc'
+			}
+			if(val.order == 'ascending'){
+				this.order= 'asc'
+			}
+			this.sort = val.prop
+			this.index()
+		},
+		fn(method){
+			this[method](this.ids)
+		},
+	},
+	mounted(){
+		this.index()
+	},
+})
+</script>
+{/block}

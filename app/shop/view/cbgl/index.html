@@ -1,0 +1,378 @@
+{extend name='common/container'}
+{block name="content"}
+<div style="margin:0 15px 15px 15px;">
+<el-card shadow="never" :style="!urlobj.dialogstate ? 'min-height:650px;' : ''">
+<div v-if="urlobj.jumpstate" slot="header" class="clearfix">
+	<span style="font-size:14px;">抄表明细</span>
+	<el-button size="small" @click="back" type="primary" icon="el-icon-back" style="float:right">返回</el-button>
+ </div>
+<div v-if="search_visible" id="search" class="search">
+	<el-form ref="form" size="small" :model="searchData" inline>
+		<el-form-item label="住户名称">
+			<el-select  remote :remote-method="remoteMemberidList"  style="width:150px" v-model="searchData.member_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in member_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="房间编号">
+			<el-select  remote :remote-method="remoteFcxxidList"  style="width:150px" v-model="searchData.fcxx_id" filterable clearable placeholder="请选择搜索">
+				<el-option v-for="(item,i) in fcxx_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<!--<el-form-item label="住户姓名">
+			<select-page :is_clear="is_clear" url="/Cbgl/getMember_id" :selectval.sync="searchData.member_id"></select-page>
+		</el-form-item>
+		<el-form-item label="抄表楼宇">
+			<treeselect style="width:150px" :default-expand-level="2" v-model="searchData.louyu_id" :options="louyu_id" :normalizer="normalizer" :show-count="true" placeholder="请选择抄表楼宇"/>
+		</el-form-item>
+		<el-form-item label="房间编号">
+			<el-select   style="width:150px" v-model="searchData.fcxx_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in fcxx_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="财务月份">
+			<el-input id="cbgl_cwyf" v-model="searchData.cbgl_cwyf"  style="width:150px;" placeholder="请输入财务月份"></el-input>
+		</el-form-item>-->
+		<el-form-item label="仪表类型">
+			<el-select   style="width:150px" v-model="searchData.yblx_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in yblx_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="仪表种类">
+			<el-select   style="width:150px" v-model="searchData.ybzl_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in ybzl_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="入账状态">
+			<el-select style="width:150px" v-model="searchData.cbgl_status" filterable clearable placeholder="请选择">
+				<el-option key="0" label="已入账" value="1"></el-option>
+				<el-option key="1" label="未入账" value="0"></el-option>
+			</el-select>
+		</el-form-item>
+		<!--<el-form-item label="费用标准">
+			<el-input id="fybz_id" v-model="searchData.fybz_id"  style="width:150px;" placeholder="请输入费用标准"></el-input>
+		</el-form-item>-->
+		<search-tool :search_data.sync="searchData" :is_clear.sync="is_clear" @refesh_list="index"></search-tool>
+	</el-form>
+</div>
+<div class="btn-group" style="margin-top:10px;margin-bottom:10px;">
+	<div>
+		<el-button v-for="item in button_group" :key="item.access" v-if="checkPermission(item.access,'{:implode(',',session('shop.access'))}','{:session('shop.role_id')}',[1])" :disabled="$data[item.disabled]" :type="item.color" size="mini" :icon="item.icon" @click="fn(item.clickname)">
+			<span v-if="item.batch" v-text="$data['batchUpdateStatus']?'批量保存':'批量编辑'"></span>
+			<span v-else v-text="item.name"></span>
+		</el-button>
+	</div>
+	<div><table-tool :search_visible.sync="search_visible"   @refesh_list="index"></table-tool></div>
+</div>
+<el-table :row-class-name="rowClass" @selection-change="selection"  @row-click="handleRowClick"  row-key="cbgl_id"  :header-cell-style="{ background: '#eef1f6', color: '#606266' }" @sort-change='sortChange' v-loading="loading"  ref="multipleTable" border class="eltable" :data="list"  style="width: 100%">
+	<el-table-column align="center" type="selection" width="42"></el-table-column>
+	<el-table-column align="center"  property="member_name"  label="住户姓名" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="fcxx_fjbh"  label="房间编号" show-overflow-tooltip width="150">
+	</el-table-column>
+	<el-table-column align="center"  property="cbgl_cwyf"  label="财务月份" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="cbgl_sqsl"  label="上期数量" show-overflow-tooltip width="">
+		<template class="sort" slot-scope="scope">
+			<el-input @blur.stop="updateExt(scope.row,'cbgl_sqsl')"  size="mini" placeholder="上期数量" v-model="scope.row.cbgl_sqsl"></el-input>
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="cbgl_bqsl"  label="本期数量" show-overflow-tooltip width="">
+		<template class="sort" slot-scope="scope">
+			<el-input @blur.stop="updateExt(scope.row,'cbgl_bqsl')"  size="mini" placeholder="本期数量" v-model="scope.row.cbgl_bqsl"></el-input>
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="cbgl_cbyl"  label="抄表用量" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="cbgl_shyl"  label="损耗用量" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="cbgl_ybbl"  label="仪表倍率" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="cbgl_sjyl"  label="实际用量" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="fybz_bzdj"  label="标准单价" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="cbgl_cbje"  label="抄表金额" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="cbgl_kstime"  label="开始时间" show-overflow-tooltip width="100">
+		<template slot-scope="scope">
+			{{parseTime(scope.row.cbgl_kstime,'{y}-{m}-{d}')}}
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="cbgl_jstime"  label="结束时间" show-overflow-tooltip width="100">
+		<template slot-scope="scope">
+			{{parseTime(scope.row.cbgl_jstime,'{y}-{m}-{d}')}}
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="cbgl_status"  label="入账状态" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<el-tag type="success" v-if="scope.row.cbgl_status == '1'" size="mini" effect="dark">已入账</el-tag>
+			<el-tag type="warning" v-if="scope.row.cbgl_status == '0'" size="mini" effect="dark">未入账</el-tag>
+		</template>
+	</el-table-column>
+	<el-table-column :fixed="ismobile()?false:'right'" label="操作" align="center" width="211">
+		<template slot-scope="scope">
+			<div v-if="scope.row.cbgl_id">
+				<el-button v-if="scope.row.cbgl_status == 0 && checkPermission('/shop/Cbgl/DanHuRuZhang.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-edit-outline" type="primary" @click="DanHuRuZhang(scope.row)" >单户入账</el-button>
+				<el-button v-if="scope.row.cbgl_status == 0 && checkPermission('/shop/Cbgl/delete.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-delete" type="danger" @click="del(scope.row)" >单户删除</el-button>
+			</div>
+		</template>
+	</el-table-column>
+</el-table>
+<Page :total="page_data.total" :page.sync="page_data.page" :limit.sync="page_data.limit" @pagination="index" />
+</el-card>
+
+<!--生成抄表-->
+<Add :show.sync="dialog.addDialogStatus" size="small" @refesh_list="index"></Add>
+<!--单户生成-->
+<Adddanhu :show.sync="dialog.addDanhuDialogStatus" size="small" @refesh_list="index"></AddDanhu>
+<!--修改-->
+<Update :info="updateInfo" :show.sync="dialog.updateDialogStatus" size="small" @refesh_list="index"></Update>
+<!--本期用量-->
+<Batupdate :info="batupdateInfo" :show.sync="dialog.batupdateDialogStatus" size="small" @refesh_list="index"></Batupdate>
+
+</div>
+
+{/block}
+{block name="script"}
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script src="__PUBLIC__/assets/libs/treeselect/vue-treeselect.umd.min.js"></script>
+<link rel="stylesheet" href="__PUBLIC__/assets/libs/treeselect/vue-treeselect.min.css">
+<script src="__PUBLIC__/components/shop/cbgl/add.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/cbgl/addDanhu.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/cbgl/update.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/cbgl/batupdate.js?v=<?php echo rand(1000,9999)?>"></script>
+<script>
+new Vue({
+	el: '#app',
+	components:{
+		'treeselect':VueTreeselect.Treeselect,
+	},
+	data: function() {
+		return {
+			dialog: {
+				addDialogStatus : false,
+				addDanhuDialogStatus : false,
+				updateDialogStatus : false,
+				batupdateDialogStatus : false,
+			},
+			searchData:{},
+			button_group:[
+				{name:'批量入账',color:'primary',access:'/shop/Cbgl/PiLiangRuZhang.html',icon:'el-icon-edit-outline',disabled:'multiple',clickname:'PiLiangRuZhang'},
+				{name:'撤销入账',color:'danger',access:'/shop/Cbgl/CheXiaoRuZhang.html',icon:'el-icon-edit-outline',disabled:'multiple',clickname:'CheXiaoRuZhang'},
+			],
+			loading: false,
+			page_data: {
+				limit: 20,
+				page: 1,
+				total:20,
+			},
+			order:'',
+			sort:'',
+			ids: [],
+			single:true,
+			multiple:true,
+			search_visible:false,
+			list: [],
+			louyu_id: [],
+			fcxx_id: [],
+			yblx_id: [],
+			ybzl_id: [],
+			member_id: [],
+			updateInfo:{},
+			batupdateInfo:{},
+			is_clear:false,
+		}
+	},
+	methods:{
+		remoteFcxxidList(val){
+			axios.post(base_url + '/Cbgl/remoteFcxxidList',{queryString:val}).then(res => {
+				if(res.data.status == 200){
+					this.fcxx_id = res.data.data
+				}
+			})
+		},
+		remoteMemberidList(val){
+			axios.post(base_url + '/Cbgl/remoteMemberidList',{queryString:val}).then(res => {
+				if(res.data.status == 200){
+					this.member_id = res.data.data
+				}
+			})
+		},
+		index(){
+			let param = {limit:this.page_data.limit,page:this.page_data.page,order:this.order,sort:this.sort}
+			Object.assign(param, this.searchData,this.urlobj)
+			this.loading = true
+			axios.post(base_url + '/Cbgl/index',param).then(res => {
+				if(res.data.status == 200){
+					this.list = res.data.data.data
+					this.page_data.total = res.data.data.total
+					this.loading = false
+					if(this.page_data.page == 1){
+						this.louyu_id = res.data.sql_field_data.louyu_ids
+						this.yblx_id = res.data.sql_field_data.yblx_ids
+						this.ybzl_id = res.data.sql_field_data.ybzl_ids
+					}
+				}else{
+					this.$message.error(res.data.msg);
+				}
+			})
+		},
+		updateExt(row,field){
+			if(row.cbgl_id){
+				axios.post(base_url + '/Cbgl/updateExt',{cbgl_id:row.cbgl_id,[field]:row[field]}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+						this.index()
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}
+		},
+		add(){
+			this.dialog.addDialogStatus = true
+		},
+		addDanhu(){
+			this.dialog.addDanhuDialogStatus = true
+		},
+		update(row){
+			let id = row.cbgl_id ? row.cbgl_id : this.ids.join(',')
+			axios.post(base_url + '/Cbgl/getUpdateInfo',{cbgl_id:id}).then(res => {
+				if(res.data.status == 200){
+					this.dialog.updateDialogStatus = true
+					this.updateInfo = res.data.data
+				}else{
+					this.$message.error(res.data.msg)
+				}
+			})
+		},
+		del(row){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				let ids = row.cbgl_id ? row.cbgl_id : this.ids.join(',')
+				axios.post(base_url + '/Cbgl/delete',{cbgl_id:ids}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+						this.index()
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}).catch(() => {})
+		},
+		batupdate(row){
+			this.dialog.batupdateDialogStatus = true
+			this.batupdateInfo = {cbgl_id:row.cbgl_id ? row.cbgl_id : this.ids.join(',')}
+		},
+		DanHuRuZhang(row){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				let ids = row.cbgl_id ? row.cbgl_id : this.ids.join(',')
+				axios.post(base_url + '/Cbgl/DanHuRuZhang',{cbgl_id:ids}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+						this.index()
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}).catch(() => {})
+		},
+		PiLiangRuZhang(row){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				let ids = row.cbgl_id ? row.cbgl_id : this.ids.join(',')
+				axios.post(base_url + '/Cbgl/PiLiangRuZhang',{cbgl_id:ids}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+						this.index()
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}).catch(() => {})
+		},
+		CheXiaoRuZhang(row){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				let ids = row.cbgl_id ? row.cbgl_id : this.ids.join(',')
+				axios.post(base_url + '/Cbgl/CheXiaoRuZhang',{cbgl_id:ids}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+						this.index()
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}).catch(() => {})
+		},
+		selection(selection) {
+			this.ids = selection.map(item => item.cbgl_id)
+			this.single = selection.length != 1
+			this.multiple = !selection.length
+		},
+		handleRowClick(row, rowIndex,event){
+			if(event.target.className !== 'el-input__inner'){
+				this.$refs.multipleTable.toggleRowSelection(row)
+			}
+		},
+		rowClass ({ row, rowIndex }) {
+			for(let i=0;i<this.ids.length;i++) {
+				if (row.cbgl_id === this.ids[i]) {
+					return 'rowLight'
+				}
+			}
+		},
+		sortChange(val){
+			if(val.order == 'descending'){
+				this.order= 'desc'
+			}
+			if(val.order == 'ascending'){
+				this.order= 'asc'
+			}
+			this.sort = val.prop
+			this.index()
+		},
+		back(){
+			history.back(-1)
+		},
+		/** 转换菜单数据结构 */
+		normalizer(node) {
+			if (node.children && !node.children.length) {
+				delete node.children
+			}
+			return {
+				id: node.val,
+				label: node.key,
+				children: node.children
+			}
+		},
+		selectFcxx_id(val){
+			axios.post(base_url + '/Cbgl/getFcxx_id',{louyu_id:val}).then(res => {
+				if(res.data.status == 200){
+					this.fcxx_id = res.data.data
+				}
+			})
+		},
+		fn(method){
+			this[method](this.ids)
+		},
+	},
+	mounted(){
+		this.index()
+	},
+})
+</script>
+{/block}

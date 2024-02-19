@@ -1,0 +1,258 @@
+{extend name='common/container'}
+{block name="content"}
+<div style="margin:0 15px 15px 15px;">
+<el-row :gutter="10">
+<el-col :span="4" class="hidden-sm-and-down">
+	<left-tree :treelist="treeList" :search_data.sync="searchData" fieldname="pjlx_id" @refesh_list="index"></left-tree>
+</el-col>
+<el-col :xs="24" :sm="24" :md="20" :lg="20">
+<el-card shadow="never" style="min-height:650px;">
+<div v-if="search_visible" id="search" class="search">
+	<el-form ref="form" size="small" :model="searchData" inline>
+		<el-form-item label="票据类型">
+			<el-select @change="selectPjlx_pid"  style="width:150px" v-model="searchData.pjlx_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in pjlx_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="票据模板">
+			<el-select   style="width:150px" v-model="searchData.pjlx_pid" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in pjlx_pid" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="票据名称">
+			<el-input id="pjgl_name" v-model="searchData.pjgl_name"  style="width:150px;" placeholder="请输入票据名称"></el-input>
+		</el-form-item>
+		<search-tool :search_data.sync="searchData" @refesh_list="index"></search-tool>
+	</el-form>
+</div>
+<div class="btn-group" style="margin-top:10px;margin-bottom:10px;">
+	<div>
+		<el-button v-for="item in button_group" :key="item.access" v-if="checkPermission(item.access,'{:implode(',',session('shop.access'))}','{:session('shop.role_id')}',[1])" :disabled="$data[item.disabled]" :type="item.color" size="mini" :icon="item.icon" @click="fn(item.clickname)">
+			<span v-if="item.batch" v-text="$data['batchUpdateStatus']?'批量保存':'批量编辑'"></span>
+			<span v-else v-text="item.name"></span>
+		</el-button>
+	</div>
+	<div><table-tool :search_visible.sync="search_visible"   @refesh_list="index"></table-tool></div>
+</div>
+<el-table :row-class-name="rowClass" @selection-change="selection"  @row-click="handleRowClick"  row-key="pjgl_id"  :header-cell-style="{ background: '#eef1f6', color: '#606266' }" @sort-change='sortChange' v-loading="loading"  ref="multipleTable" border class="eltable" :data="list"  style="width: 100%">
+	<el-table-column align="center" type="selection" width="42"></el-table-column>
+	<el-table-column align="center" type = '' property="pjgl_id"  label="编号"  width="70">
+	</el-table-column>
+	<el-table-column align="center"  property="pjlx.pjlx_name"  label="票据类型" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="pjlx_id"  label="票据类型" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="pjlx_pid"  label="票据模板" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="pjgl_name"  label="票据名称" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="pjgl_qsbm"  label="起始编码" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="pjgl_pjzs"  label="票据张数" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="shopadmin.cname"  label="创建人员" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="pjgl_time"  label="录入时间" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			{{parseTime(scope.row.pjgl_time,'{y}-{m}-{d}')}}
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="pjgl_status"  label="启用状态" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<el-switch @change="updateExt(scope.row,'pjgl_status')" :active-value="1" :inactive-value="0" v-model="scope.row.pjgl_status"></el-switch>
+		</template>
+	</el-table-column>
+	<el-table-column :fixed="ismobile()?false:'right'" label="操作" align="center" width="230">
+		<template slot-scope="scope">
+			<div v-if="scope.row.pjgl_id">
+				<el-button v-if="checkPermission('/shop/Pjgl/update.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-edit" type="primary" @click="update(scope.row)" >修改</el-button>
+				<el-button v-if="checkPermission('/shop/Pjgl/mb_shezhi.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-plus" type="warning" @click="mb_shezhi(scope.row)" >模板设置</el-button>
+			</div>
+		</template>
+	</el-table-column>
+</el-table>
+<Page :total="page_data.total" :page.sync="page_data.page" :limit.sync="page_data.limit" @pagination="index" />
+</el-card>
+</el-col>
+</el-row>
+
+<!--添加-->
+<Add :show.sync="dialog.addDialogStatus" size="small" @refesh_list="index"></Add>
+<!--修改-->
+<Update :info="updateInfo" :show.sync="dialog.updateDialogStatus" size="small" @refesh_list="index"></Update>
+<!--查看详情-->
+<Detail :info="detailInfo" :show.sync="dialog.detailDialogStatus" size="small" @refesh_list="index"></Detail>
+<!--模板设置-->
+<Mb_shezhi :info="mb_shezhiInfo" :show.sync="dialog.mb_shezhiDialogStatus" size="small"></Mb_shezhi>
+
+</div>
+
+{/block}
+{block name="script"}
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script src="__PUBLIC__/components/shop/pjgl/add.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/pjgl/update.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/pjgl/detail.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/pjgl/mb_shezhi.js?v=<?php echo rand(1000,9999)?>"></script>
+<script>
+new Vue({
+	el: '#app',
+	components:{
+	},
+	data: function() {
+		return {
+			dialog: {
+				addDialogStatus : false,
+				updateDialogStatus : false,
+				detailDialogStatus : false,
+				mb_shezhiDialogStatus : false,
+			},
+			searchData:{},
+			button_group:[
+				{name:'添加',color:'success',access:'/shop/Pjgl/add.html',icon:'el-icon-plus',disabled:'',clickname:'add'},
+				{name:'修改',color:'primary',access:'/shop/Pjgl/update.html',icon:'el-icon-edit',disabled:'single',clickname:'update'},
+				{name:'删除',color:'danger',access:'/shop/Pjgl/delete.html',icon:'el-icon-delete',disabled:'multiple',clickname:'del'},
+				{name:'模板设置',color:'warning',access:'/shop/Pjgl/mb_shezhi.html',icon:'el-icon-plus',disabled:'single',clickname:'mb_shezhi'},
+			],
+			loading: false,
+			page_data: {
+				limit: 20,
+				page: 1,
+				total:20,
+			},
+			order:'',
+			sort:'',
+			ids: [],
+			single:true,
+			multiple:true,
+			search_visible:false,
+			list: [],
+			treeList:[],
+			pjlx_id: [],
+			pjlx_pid: [],
+			updateInfo:{},
+			detailInfo:{},
+			mb_shezhiInfo:{},
+		}
+	},
+	methods:{
+		index(){
+			let param = {limit:this.page_data.limit,page:this.page_data.page,order:this.order,sort:this.sort}
+			Object.assign(param, this.searchData,this.urlobj)
+			this.loading = true
+			axios.post(base_url + '/Pjgl/index',param).then(res => {
+				if(res.data.status == 200){
+					this.list = res.data.data.data
+					this.page_data.total = res.data.data.total
+					this.loading = false
+					if(this.page_data.page == 1){
+						this.treeList = res.data.sql_field_data.pjlx_ids
+						this.pjlx_id = res.data.sql_field_data.pjlx_ids
+					}
+				}else{
+					this.$message.error(res.data.msg);
+				}
+			})
+		},
+		updateExt(row,field){
+			if(row.pjgl_id){
+				axios.post(base_url + '/Pjgl/updateExt',{pjgl_id:row.pjgl_id,[field]:row[field]}).then(res => {
+					if(res.data.status == 200){
+						this.index();
+						this.$message({message: res.data.msg, type: 'success'})
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}
+		},
+		add(){
+			this.dialog.addDialogStatus = true
+		},
+		update(row){
+			let id = row.pjgl_id ? row.pjgl_id : this.ids.join(',')
+			axios.post(base_url + '/Pjgl/getUpdateInfo',{pjgl_id:id}).then(res => {
+				if(res.data.status == 200){
+					this.dialog.updateDialogStatus = true
+					this.updateInfo = res.data.data
+				}else{
+					this.$message.error(res.data.msg)
+				}
+			})
+		},
+		del(row){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				let ids = row.pjgl_id ? row.pjgl_id : this.ids.join(',')
+				axios.post(base_url + '/Pjgl/delete',{pjgl_id:ids}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+						this.index()
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}).catch(() => {})
+		},
+		detail(row){
+			this.dialog.detailDialogStatus = true
+			this.detailInfo = {pjgl_id:row.pjgl_id ? row.pjgl_id : this.ids.join(',')}
+		},
+		mb_shezhi(row){
+			let ids = row.pjgl_id ? row.pjgl_id : this.ids.join(',')
+			let data = {}
+			this.list.forEach((item,i) => {
+				if(item.pjgl_id == ids){
+					data = this.list[i]
+				}
+			})
+			this.mb_shezhiInfo = data
+			this.dialog.mb_shezhiDialogStatus = true
+		},
+		selection(selection) {
+			this.ids = selection.map(item => item.pjgl_id)
+			this.single = selection.length != 1
+			this.multiple = !selection.length
+		},
+		handleRowClick(row, rowIndex,event){
+			if(event.target.className !== 'el-input__inner'){
+				this.$refs.multipleTable.toggleRowSelection(row)
+			}
+		},
+		rowClass ({ row, rowIndex }) {
+			for(let i=0;i<this.ids.length;i++) {
+				if (row.pjgl_id === this.ids[i]) {
+					return 'rowLight'
+				}
+			}
+		},
+		sortChange(val){
+			if(val.order == 'descending'){
+				this.order= 'desc'
+			}
+			if(val.order == 'ascending'){
+				this.order= 'asc'
+			}
+			this.sort = val.prop
+			this.index()
+		},
+		selectPjlx_pid(val){
+			axios.post(base_url + '/Pjgl/getPjlx_pid',{pjlx_id:val}).then(res => {
+				if(res.data.status == 200){
+					this.pjlx_pid = res.data.data
+				}
+			})
+		},
+		fn(method){
+			this[method](this.ids)
+		},
+	},
+	mounted(){
+		this.index()
+	},
+})
+</script>
+{/block}

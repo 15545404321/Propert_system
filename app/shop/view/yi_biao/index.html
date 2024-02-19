@@ -1,0 +1,395 @@
+<script src="../../../../public/components/shop/yibiao/importdata.js"></script>{extend name='common/container'}
+{block name="content"}
+<div style="margin:0 15px 15px 15px;">
+<el-row :gutter="10">
+<el-col :span="4" class="hidden-sm-and-down">
+	<left-tree :treelist="treeList" :search_data.sync="searchData" fieldname="ybzl_id" @refesh_list="index"></left-tree>
+</el-col>
+<el-col :xs="24" :sm="24" :md="20" :lg="20">
+<el-card shadow="never" style="min-height:650px;">
+<div v-if="search_visible" id="search" class="search">
+	<el-form ref="form" size="small" :model="searchData" inline>
+		<el-form-item label="仪表类型">
+			<el-select   style="width:150px" v-model="searchData.yblx_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in yblx_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="仪表种类">
+			<treeselect style="width:150px" :default-expand-level="2" v-model="searchData.ybzl_id" :options="ybzl_id" :normalizer="normalizer" :show-count="true" placeholder="请选择仪表种类"/>
+		</el-form-item>
+		<el-form-item label="楼宇/单元">
+			<treeselect style="width:150px" :default-expand-level="2" v-model="searchData.louyu_id" :options="louyu_id" :normalizer="normalizer" :show-count="true" placeholder="请选择楼宇/单元"/>
+		</el-form-item>
+		<el-form-item label="房间编号">
+			<el-select   style="width:150px" v-model="searchData.fcxx_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in fcxx_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="仪表状态">
+			<el-select style="width:150px" v-model="searchData.yibiao_status" filterable clearable placeholder="请选择">
+				<el-option key="0" label="正常" value="1"></el-option>
+				<el-option key="1" label="停用" value="0"></el-option>
+				<el-option key="2" label="换表停用" value="2"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="仪表备注">
+			<el-input id="yibiao_remarks" v-model="searchData.yibiao_remarks"  style="width:150px;" placeholder="请输入仪表备注"></el-input>
+		</el-form-item>
+		<search-tool :search_data.sync="searchData" @refesh_list="index"></search-tool>
+	</el-form>
+</div>
+<div class="btn-group" style="margin-top:10px;margin-bottom:10px;">
+	<div>
+		<el-button v-for="item in button_group" :key="item.access" v-if="checkPermission(item.access,'{:implode(',',session('shop.access'))}','{:session('shop.role_id')}',[1])" :disabled="$data[item.disabled]" :type="item.color" size="mini" :icon="item.icon" @click="fn(item.clickname)">
+			<span v-if="item.batch" v-text="$data['batchUpdateStatus']?'批量保存':'批量编辑'"></span>
+			<span v-else v-text="item.name"></span>
+		</el-button>
+	</div>
+	<div><table-tool :search_visible.sync="search_visible"   @refesh_list="index"></table-tool></div>
+</div>
+<el-table :row-class-name="rowClass" @selection-change="selection"  @row-click="handleRowClick"  row-key="yibiao_id"  :header-cell-style="{ background: '#eef1f6', color: '#606266' }" @sort-change='sortChange' v-loading="loading"  ref="multipleTable" border class="eltable" :data="list"  style="width: 100%">
+	<el-table-column align="center" type="selection" width="42"></el-table-column>
+	<el-table-column align="center" type = '' property="yibiao_id"  label="编号"  width="70">
+	</el-table-column>
+	<el-table-column align="center"  property="yibiao_sn"  label="仪表编号" show-overflow-tooltip width="200">
+		<template slot-scope="scope">
+			<el-input v-if="scope.row.show" size="mini" placeholder="仪表编号" v-model="scope.row.yibiao_sn"></el-input>
+			<span v-else>{{scope.row.yibiao_sn}}</span> 
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="yblx_name"  label="仪表类型" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="ybzl_name"  label="仪表种类" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="louyu_name"  label="楼宇/单元" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="fcxx_fjbh"  label="房间编号" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="yibiao_ybbl"  label="仪表倍率" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<el-input v-if="scope.row.show" size="mini" placeholder="仪表倍率" v-model="scope.row.yibiao_ybbl"></el-input>
+			<span v-else>{{scope.row.yibiao_ybbl}}</span> 
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="yibiao_csds"  label="初始底数" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<el-input v-if="scope.row.show" size="mini" placeholder="初始底数" v-model="scope.row.yibiao_csds"></el-input>
+			<span v-else>{{scope.row.yibiao_csds}}</span> 
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="yibiao_yblc"  label="仪表量程" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<el-input v-if="scope.row.show" size="mini" placeholder="仪表量程" v-model="scope.row.yibiao_yblc"></el-input>
+			<span v-else>{{scope.row.yibiao_yblc}}</span> 
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="add_time"  label="安装时间" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			{{parseTime(scope.row.add_time,'{y}-{m}-{d}')}}
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="yibiao_remarks"  label="仪表备注" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<el-input v-if="scope.row.show" size="mini" placeholder="仪表备注" v-model="scope.row.yibiao_remarks"></el-input>
+			<span v-else>{{scope.row.yibiao_remarks}}</span>
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="yibiao_status"  label="仪表状态" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<el-select v-if="scope.row.show" v-model="scope.row.yibiao_status" clearable size="mini" filterable placeholder="请选择">
+				<el-option label="正常" :value="1"></el-option>
+				<el-option label="停用" :value="0"></el-option>
+				<el-option label="换表停用" :value="2"></el-option>
+			</el-select>
+			<span v-else>
+				<el-tag type="primary" v-if="scope.row.yibiao_status == '1'" size="mini" effect="dark">正常</el-tag>
+				<el-tag type="danger" v-if="scope.row.yibiao_status == '0'" size="mini" effect="dark">停用</el-tag>
+				<el-tag type="warning" v-if="scope.row.yibiao_status == '2'" size="mini" effect="dark">换表停用</el-tag>
+			</span>
+		</template>
+	</el-table-column>
+	<el-table-column :fixed="ismobile()?false:'right'" label="操作" align="center" width="150">
+		<template slot-scope="scope">
+			<div v-if="scope.row.yibiao_id">
+				<el-button v-if="checkPermission('/shop/YiBiao/update.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-edit" type="primary" @click="update(scope.row)" >修改</el-button>
+			</div>
+			<div v-else>
+			<el-button icon="el-icon-edit" size="mini" type="primary" @click="saveBatchAdd">全部保存</el-button>
+			<el-button icon="el-icon-delete" size="mini" type="danger" @click="batchDelete(scope.$index)"></el-button>
+			</div>
+		</template>
+	</el-table-column>
+</el-table>
+<Page :total="page_data.total" :page.sync="page_data.page" :limit.sync="page_data.limit" @pagination="index" />
+</el-card>
+</el-col>
+</el-row>
+
+<!--添加-->
+<Add :show.sync="dialog.addDialogStatus" size="small" @refesh_list="index"></Add>
+<!--修改-->
+<Update :info="updateInfo" :show.sync="dialog.updateDialogStatus" size="small" @refesh_list="index"></Update>
+<!--查看详情-->
+<Detail :info="detailInfo" :show.sync="dialog.detailDialogStatus" size="small" @refesh_list="index"></Detail>
+<!--导出弹窗-->
+<el-dialog title="导出进度条" :visible="dumpshow" :before-close="closedialog" width="500px">
+	<el-progress :percentage="percentage"></el-progress>
+</el-dialog>
+<!--导入弹窗-->
+<!--<import :show.sync="dialog.importDataDialogStatus" import_url='/YiBiao/importData' @refesh_list="index"></import>-->
+<!--<importtoerror :show.sync="dialog.importDataDialogStatus" import_url='/YiBiao/importData' @refesh_list="index"></importtoerror>-->
+<Dataimport :show.sync="dialog.importDataDialogStatus" import_url='/YiBiao/importData'  @refesh_list="index"></Dataimport>
+
+</div>
+
+{/block}
+{block name="script"}
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script src="__PUBLIC__/assets/libs/treeselect/vue-treeselect.umd.min.js"></script>
+<link rel="stylesheet" href="__PUBLIC__/assets/libs/treeselect/vue-treeselect.min.css">
+<script src="__PUBLIC__/assets/libs/xlsx/xlsx.core.min.js"></script>
+<script src="__PUBLIC__/components/shop/yibiao/add.js?v=<?php echo rand(1000,9999)?>"></script>
+<!--<script src="__PUBLIC__/components/shop/yibiao/import1data.js?v=<?php echo rand(1000,9999)?>"></script>-->
+<script src="__PUBLIC__/components/shop/yibiao/dataimport.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/yibiao/update.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/yibiao/detail.js?v=<?php echo rand(1000,9999)?>"></script>
+<script>
+new Vue({
+	el: '#app',
+	components:{
+		'treeselect':VueTreeselect.Treeselect,
+	},
+	data: function() {
+		return {
+			dialog: {
+				addDialogStatus : false,
+				updateDialogStatus : false,
+				importDataDialogStatus : false,
+				detailDialogStatus : false,
+			},
+			searchData:{},
+			button_group:[
+				{name:'添加',color:'success',access:'/shop/YiBiao/add.html',icon:'el-icon-plus',disabled:'',clickname:'add'},
+				{name:'批量添加',color:'success',access:'/shop/YiBiao/batchAdd.html',icon:'el-icon-plus',disabled:'',clickname:'batchAdd'},
+				{name:'修改',color:'primary',access:'/shop/YiBiao/update.html',icon:'el-icon-edit',disabled:'single',clickname:'update'},
+				{name:'删除',color:'danger',access:'/shop/YiBiao/delete.html',icon:'el-icon-delete',disabled:'multiple',clickname:'del'},
+				{name:'查看详情',color:'info',access:'/shop/YiBiao/detail.html',icon:'el-icon-view',disabled:'single',clickname:'detail'},
+				{name:'导出',color:'warning',access:'/shop/YiBiao/dumpdata.html',icon:'el-icon-download',disabled:'',clickname:'dumpdata'},
+				{name:'导入',color:'warning',access:'/shop/YiBiao/importData.html',icon:'el-icon-upload',disabled:'',clickname:'importData'},
+			],
+			loading: false,
+			page_data: {
+				limit: 20,
+				page: 1,
+				total:20,
+			},
+			order:'',
+			sort:'',
+			ids: [],
+			single:true,
+			multiple:true,
+			search_visible:false,
+			batchUpdateStatus:false,
+			list: [],
+			treeList:[],
+			yblx_id: [],
+			ybzl_id: [],
+			louyu_id: [],
+			fcxx_id: [],
+			updateInfo:{},
+			detailInfo:{},
+			exceldata:[],
+			dumppage:1,
+			ws:{},
+			dumpshow:false,
+			percentage:0,
+			filename:'',
+		}
+	},
+	watch:{
+		"searchData.louyu_id":"selectFcxx_id"
+	},
+	methods:{
+		index(){
+			let param = {limit:this.page_data.limit,page:this.page_data.page,order:this.order,sort:this.sort}
+			Object.assign(param, this.searchData,this.urlobj)
+			this.loading = true
+			axios.post(base_url + '/YiBiao/index',param).then(res => {
+				if(res.data.status == 200){
+					this.list = res.data.data.data
+					this.page_data.total = res.data.data.total
+					this.loading = false
+					if(this.page_data.page == 1){
+						this.treeList = res.data.sql_field_data.ybzl_ids
+						this.yblx_id = res.data.sql_field_data.yblx_ids
+						this.ybzl_id = res.data.sql_field_data.ybzl_ids
+						this.louyu_id = res.data.sql_field_data.louyu_ids
+					}
+				}else{
+					this.$message.error(res.data.msg);
+				}
+			})
+		},
+		updateExt(row,field){
+			if(row.yibiao_id){
+				axios.post(base_url + '/YiBiao/updateExt',{yibiao_id:row.yibiao_id,[field]:row[field]}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}
+		},
+		add(){
+			this.dialog.addDialogStatus = true
+		},
+		batchAdd(){
+			this.list.push({})
+			this.list.map((i, index) => {
+				if(!i.yibiao_id){
+					i.show = true
+					this.$set(this.list, index, i)
+				}
+			})
+		},
+		saveBatchAdd(){
+			let data = this.list.filter(item=>!item.yibiao_id)
+			if(data.length > 0){
+				this.$confirm('确定操作吗?', '提示', {
+					confirmButtonText: '确定',
+					cancelButtonText: '取消',
+					type: 'warning'
+				}).then(() => {
+					axios.post(base_url + '/YiBiao/batchAdd',{data:data}).then(res=>{
+						if(res.data.status == 200){
+							this.$message({message: '添加成功', type: 'success'})
+							this.index()
+						}else{
+							this.$message.error(res.data.msg)
+						}
+					})
+				})
+			}
+		},
+		batchDelete(index){
+			this.list.splice(index,1)
+		},
+		update(row){
+			let id = row.yibiao_id ? row.yibiao_id : this.ids.join(',')
+			axios.post(base_url + '/YiBiao/getUpdateInfo',{yibiao_id:id}).then(res => {
+				if(res.data.status == 200){
+					this.dialog.updateDialogStatus = true
+					this.updateInfo = res.data.data
+				}else{
+					this.$message.error(res.data.msg)
+				}
+			})
+		},
+		del(row){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				let ids = row.yibiao_id ? row.yibiao_id : this.ids.join(',')
+				axios.post(base_url + '/YiBiao/delete',{yibiao_id:ids}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+						this.index()
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}).catch(() => {})
+		},
+		detail(row){
+			this.dialog.detailDialogStatus = true
+			this.detailInfo = {yibiao_id:row.yibiao_id ? row.yibiao_id : this.ids.join(',')}
+		},
+		importData(){
+			this.dialog.importDataDialogStatus = true
+		},
+		dumpdata(){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				this.dumpshow = true
+				this.confirmdumpdata()
+			}).catch(() => {})
+		},
+		confirmdumpdata(){
+			let query = {page:this.dumppage,order:this.order,sort:this.sort}
+			Object.assign(query, this.searchData,{yibiao_id:this.ids.join(',')},this.urlobj)
+			axios.post(base_url + '/YiBiao/dumpdata',query).then(res => {
+				if(res.data.state == 'ok'){
+					this.percentage = res.data.percentage
+					this.dumppage = this.dumppage + 1
+					this.confirmdumpdata()
+				}else{
+					this.dumpshow = false
+					this.dumppage = 1
+					location.href = base_url + '/YiBiao/dumpdata?state=ok&'+param(query)
+				}
+			})
+		},
+		closedialog(){
+			this.dumpshow = false
+		},
+		selection(selection) {
+			this.ids = selection.map(item => item.yibiao_id)
+			this.single = selection.length != 1
+			this.multiple = !selection.length
+		},
+		handleRowClick(row, rowIndex,event){
+			if(event.target.className !== 'el-input__inner'){
+				this.$refs.multipleTable.toggleRowSelection(row)
+			}
+		},
+		rowClass ({ row, rowIndex }) {
+			for(let i=0;i<this.ids.length;i++) {
+				if (row.yibiao_id === this.ids[i]) {
+					return 'rowLight'
+				}
+			}
+		},
+		sortChange(val){
+			if(val.order == 'descending'){
+				this.order= 'desc'
+			}
+			if(val.order == 'ascending'){
+				this.order= 'asc'
+			}
+			this.sort = val.prop
+			this.index()
+		},
+		/** 转换菜单数据结构 */
+		normalizer(node) {
+			if (node.children && !node.children.length) {
+				delete node.children
+			}
+			return {
+				id: node.val,
+				label: node.key,
+				children: node.children
+			}
+		},
+		selectFcxx_id(val){
+			axios.post(base_url + '/YiBiao/getFcxx_id',{louyu_id:val}).then(res => {
+				if(res.data.status == 200){
+					this.fcxx_id = res.data.data
+				}
+			})
+		},
+		fn(method){
+			this[method](this.ids)
+		},
+	},
+	mounted(){
+		this.index()
+	},
+})
+</script>
+{/block}

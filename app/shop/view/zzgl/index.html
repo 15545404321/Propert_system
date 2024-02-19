@@ -1,0 +1,242 @@
+{extend name='common/container'}
+{block name="content"}
+
+<el-tabs class="list_tab" v-model="tabPosition" type="card" @tab-click="selectTab" style="background-color:#fff; padding-top:20px;">
+	<el-tab-pane v-for="(item,i) in xqgl_id" :key="i" :label="item.key" :name="item.val.toString()"></el-tab-pane>
+</el-tabs>
+
+<div style="margin:0 15px 15px 15px;">
+<el-card shadow="never" style="min-height:650px;">
+<div v-if="search_visible" id="search" class="search">
+	<el-form ref="form" size="small" :model="searchData" inline>
+		<el-form-item label="部门名称">
+			<el-input id="zzgl_bmmc" v-model="searchData.zzgl_bmmc"  style="width:150px;" placeholder="请输入部门名称"></el-input>
+		</el-form-item>
+		<el-form-item label="所属项目">
+			<el-select   style="width:150px" v-model="searchData.xqgl_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in xqgl_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<search-tool :search_data.sync="searchData" @refesh_list="index"></search-tool>
+	</el-form>
+</div>
+<div class="btn-group" style="margin-top:10px;margin-bottom:10px;">
+	<div>
+		<el-button v-for="item in button_group" :key="item.access" v-if="checkPermission(item.access,'{:implode(',',session('shop.access'))}','{:session('shop.role_id')}',[1])" :disabled="$data[item.disabled]" :type="item.color" size="mini" :icon="item.icon" @click="fn(item.clickname)">
+			<span v-if="item.batch" v-text="$data['batchUpdateStatus']?'批量保存':'批量编辑'"></span>
+			<span v-else v-text="item.name"></span>
+		</el-button>
+	</div>
+	<div><table-tool :search_visible.sync="search_visible" :expand_status="true" :expand="expand" @toggle="toggleRowExpansion"  @refesh_list="index"></table-tool></div>
+</div>
+<el-table :row-class-name="rowClass" @selection-change="selection"  @row-click="handleRowClick" :tree-props="{children: 'children'}"  :default-expand-all="expand" row-key="zzgl_id"  :header-cell-style="{ background: '#eef1f6', color: '#606266' }" @sort-change='sortChange' v-loading="loading"  ref="multipleTable" border class="eltable" :data="list"  style="width: 100%">
+	<el-table-column align="center" type="selection" width="42"></el-table-column>
+	<el-table-column align="center" type = '' property="zzgl_id"  label="编号"  width="70">
+	</el-table-column>
+	<el-table-column align="left"  property="zzgl_bmmc"  label="部门名称" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="xqgl_id"  label="所属项目" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="zzgl_px"  label="部门排序" show-overflow-tooltip width="100">
+		<template class="sort" slot-scope="scope">
+			<el-input @blur.stop="updateExt(scope.row,'zzgl_px')"  size="mini" placeholder="部门排序" v-model="scope.row.zzgl_px"></el-input>
+		</template>
+	</el-table-column>
+	<el-table-column :fixed="ismobile()?false:'right'" label="操作" align="center" width="190">
+		<template slot-scope="scope">
+			<div v-if="scope.row.zzgl_id">
+				<el-button v-if="checkPermission('/shop/Zzgl/update.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-edit" type="primary" @click="update(scope.row)" >修改</el-button>
+				<el-button v-if="checkPermission('/shop/Zzgl/delete.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-delete" type="danger" @click="del(scope.row)" >删除</el-button>
+			</div>
+		</template>
+	</el-table-column>
+</el-table>
+<Page :total="page_data.total" :page.sync="page_data.page" :limit.sync="page_data.limit" @pagination="index" />
+</el-card>
+
+<!--添加-->
+<Add :show.sync="dialog.addDialogStatus" size="small" @refesh_list="index"></Add>
+<!--修改-->
+<Update :info="updateInfo" :show.sync="dialog.updateDialogStatus" size="small" @refesh_list="index"></Update>
+<!--所属项目-->
+<Batupdate :info="batupdateInfo" :show.sync="dialog.batupdateDialogStatus" size="small" @refesh_list="index"></Batupdate>
+
+</div>
+
+{/block}
+{block name="script"}
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script src="__PUBLIC__/assets/libs/treeselect/vue-treeselect.umd.min.js"></script>
+<link rel="stylesheet" href="__PUBLIC__/assets/libs/treeselect/vue-treeselect.min.css">
+<script src="__PUBLIC__/components/shop/zzgl/add.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/zzgl/update.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/zzgl/batupdate.js?v=<?php echo rand(1000,9999)?>"></script>
+<script>
+new Vue({
+	el: '#app',
+	components:{
+		'treeselect':VueTreeselect.Treeselect,
+	},
+	data: function() {
+		return {
+			dialog: {
+				addDialogStatus : false,
+				updateDialogStatus : false,
+				batupdateDialogStatus : false,
+			},
+			searchData:{},
+			button_group:[
+				{name:'添加',color:'success',access:'/shop/Zzgl/add.html',icon:'el-icon-plus',disabled:'',clickname:'add'},
+				{name:'修改',color:'primary',access:'/shop/Zzgl/update.html',icon:'el-icon-edit',disabled:'single',clickname:'update'},
+				{name:'删除',color:'danger',access:'/shop/Zzgl/delete.html',icon:'el-icon-delete',disabled:'multiple',clickname:'del'},
+				{name:'所属项目',color:'primary',access:'/shop/Zzgl/batupdate.html',icon:'el-icon-edit',disabled:'multiple',clickname:'batupdate'},
+			],
+			loading: false,
+			page_data: {
+				limit: 20,
+				page: 1,
+				total:20,
+			},
+			order:'',
+			sort:'',
+			ids: [],
+			single:true,
+			multiple:true,
+			search_visible:false,
+			expand:true,
+			list: [],
+			xqgl_id: [],
+			updateInfo:{},
+			batupdateInfo:{},
+			tabPosition:'10000',
+		}
+	},
+	methods:{
+		index(){
+			let param = {limit:this.page_data.limit,page:this.page_data.page,order:this.order,sort:this.sort}
+			Object.assign(param, this.searchData,this.urlobj)
+			this.loading = true
+			axios.post(base_url + '/Zzgl/index',param).then(res => {
+				if(res.data.status == 200){
+					this.list = res.data.data.data
+					this.page_data.total = res.data.data.total
+					this.loading = false
+					if(this.page_data.page == 1){
+						this.xqgl_id = res.data.sql_field_data.xqgl_ids
+					}
+				}else{
+					this.$message.error(res.data.msg);
+				}
+			})
+		},
+		updateExt(row,field){
+			if(row.zzgl_id){
+				axios.post(base_url + '/Zzgl/updateExt',{zzgl_id:row.zzgl_id,[field]:row[field]}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}
+		},
+		add(){
+			this.dialog.addDialogStatus = true
+		},
+		update(row){
+			let id = row.zzgl_id ? row.zzgl_id : this.ids.join(',')
+			axios.post(base_url + '/Zzgl/getUpdateInfo',{zzgl_id:id}).then(res => {
+				if(res.data.status == 200){
+					this.dialog.updateDialogStatus = true
+					this.updateInfo = res.data.data
+				}else{
+					this.$message.error(res.data.msg)
+				}
+			})
+		},
+		del(row){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				let ids = row.zzgl_id ? row.zzgl_id : this.ids.join(',')
+				axios.post(base_url + '/Zzgl/delete',{zzgl_id:ids}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+						this.index()
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}).catch(() => {})
+		},
+		batupdate(row){
+			this.dialog.batupdateDialogStatus = true
+			this.batupdateInfo = {zzgl_id:row.zzgl_id ? row.zzgl_id : this.ids.join(',')}
+		},
+		selection(selection) {
+			this.ids = selection.map(item => item.zzgl_id)
+			this.single = selection.length != 1
+			this.multiple = !selection.length
+		},
+		handleRowClick(row, rowIndex,event){
+			if(event.target.className !== 'el-input__inner'){
+				this.$refs.multipleTable.toggleRowSelection(row)
+			}
+		},
+		rowClass ({ row, rowIndex }) {
+			for(let i=0;i<this.ids.length;i++) {
+				if (row.zzgl_id === this.ids[i]) {
+					return 'rowLight'
+				}
+			}
+		},
+		sortChange(val){
+			if(val.order == 'descending'){
+				this.order= 'desc'
+			}
+			if(val.order == 'ascending'){
+				this.order= 'asc'
+			}
+			this.sort = val.prop
+			this.index()
+		},
+		toggleRowExpansion(){
+			this.expand = !this.expand
+			this.list.forEach(item=>{
+				this.$refs.multipleTable.toggleRowExpansion(item,this.expand)
+			})
+		},
+		/** 转换菜单数据结构 */
+		normalizer(node) {
+			if (node.children && !node.children.length) {
+				delete node.children
+			}
+			return {
+				id: node.val,
+				label: node.key,
+				children: node.children
+			}
+		},
+		selectZzgl_sjbm(val){
+			axios.post(base_url + '/Zzgl/getZzgl_sjbm',{xqgl_id:val}).then(res => {
+				if(res.data.status == 200){
+					this.zzgl_sjbm = res.data.data
+				}
+			})
+		},
+		selectTab(tab,event){
+			this.searchData.xqgl_id = this.tabPosition
+			this.index()
+		},
+		fn(method){
+			this[method](this.ids)
+		},
+	},
+	mounted(){
+		this.index()
+	},
+})
+</script>
+{/block}

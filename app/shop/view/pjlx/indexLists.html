@@ -1,0 +1,135 @@
+{extend name='common/container_p'}
+{block name="content"}
+<div style="margin:0 15px 15px 15px;">
+	<el-card shadow="never">
+
+		<div class="title-name">测试项目</div>
+		<div class="flex-a"><div class="flex-b"> </div></div>
+		<div class="flex-a"><div class="flex-b"> </div></div>
+		<div style="padding-top: 20px;"></div>
+
+		<div style="margin-left: 90px;">
+			<div class="middle-name-a">
+				<div class="middle-name-b1">客户姓名：</div>
+				<div class="middle-name-b2">单据编号：</div>
+			</div>
+			<div class="middle-name-a">
+				<div class="middle-name-b3">交易编号：</div>
+				<div class="middle-name-b3">收款时间：</div>
+				<div class="middle-name-b3">建筑面积：</div>
+			</div>
+		</div>
+
+		<el-table :header-cell-style="{ background: '#eef1f6', color: '#606266'}"
+				  v-loading="loading" ref="multipleTable" border
+				  class="eltable" :data="list">
+
+			<el-table-column align="center" type = '' property="pjlx_id"  label="房间号"  width="200">
+			</el-table-column>
+
+			<el-table-column align="center"  property="pjlx_name"  label="费用名称" width="">
+			</el-table-column>
+
+			<el-table-column align="center"  property="pjlx_name"  label="应收金额" width="">
+			</el-table-column>
+
+			<el-table-column align="center"  property="pjlx_name"  label="开始日期" width="">
+			</el-table-column>
+
+			<el-table-column align="center"  property="pjlx_name"  label="结束日期" width="">
+			</el-table-column>
+
+			<el-table-column align="center"  property="pjlx_name"  label="费用单价" width="">
+			</el-table-column>
+
+			<el-table-column align="center"  property="pjlx_name"  label="上期数" width="">
+			</el-table-column>
+
+			<el-table-column align="center"  property="pjlx_name"  label="本期数" width="">
+			</el-table-column>
+
+			<el-table-column align="center"  property="pjlx_name"  label="用量" width="">
+			</el-table-column>
+
+			<el-table-column align="center"  property="pjlx_name"  label="倍率" width="">
+			</el-table-column>
+
+		</el-table>
+
+		<div style="padding-top: 30px;"></div>
+		<div style="margin-left: 90px; color: #777777; margin-bottom: 10px;">合计：</div>
+		<div style="border-bottom: #777777 1px solid; margin-bottom: 10px;"> </div>
+		<div style="margin-left: 90px;">
+			<div class="middle-name-a">
+				<div class="middle-name-b2">收款人：{:session("shop.cname")}</div>
+				<div class="middle-name-b2">收款方式：</div>
+				<div class="middle-name-b1">收款单位：</div>
+			</div>
+		</div>
+	</el-card>
+</div>
+
+{/block}
+{block name="script"}
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script>
+new Vue({
+	el: '#app',
+	components:{
+	},
+	data: function() {
+		return {
+			searchData:{},
+			loading: false,
+			page_data: {
+				limit: 10000,
+				page: 1,
+				total:10000,
+			},
+			single:true,
+			multiple:true,
+			search_visible:true,
+			list: [],
+		}
+	},
+	methods:{
+		index(){
+			let param = {limit:this.page_data.limit,page:this.page_data.page,order:this.order,sort:this.sort}
+			Object.assign(param, this.searchData,this.urlobj)
+			this.loading = true
+			axios.post(base_url + '/Pjlx/index',param).then(res => {
+				if(res.data.status == 200){
+					this.list = res.data.data.data
+					this.loading = false
+				}else{
+					this.$message.error(res.data.msg);
+				}
+			})
+		},
+	},
+	mounted(){
+		this.index()
+	},
+})
+</script>
+<style>
+
+	.el-table eltable {color: #777777; width: 10px; }
+
+	.el-table__header tr, .el-table__header th {color: #777777; padding: 0; height: 70px; font-size: 20px; }
+
+	.title-name {color: #777777; width: 100%; font-size: 40px; text-align: center; padding-bottom: 5px; }
+
+	.flex-a { display: flex; justify-content: center; }
+
+	.flex-b { border-bottom: #777777 1px solid; width: 70%; align-items: center; margin-bottom: 3px; }
+
+	.middle-name-a {color: #777777; display: flex; justify-content: center; height: 40px; }
+
+	.middle-name-b1 {color: #777777; width: 66%; }
+
+	.middle-name-b2 {color: #777777; width: 33%; }
+
+	.middle-name-b3 {color: #777777; width: 33%; }
+</style>
+{/block}

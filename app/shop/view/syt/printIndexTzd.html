@@ -1,0 +1,155 @@
+<script src="../../../../public/assets/libs/jquery/jquery.min.js"></script>{extend name='common/container_p'}
+{block name="content"}
+<div>
+	<!--<el-button style="margin-left: 180mm;margin-bottom: 10px;" @click="printTable">打印票据</el-button>-->
+	<el-card shadow="never" style="width: 210mm;" id="printArea">
+
+		<div class="title-name">{{title_name}}</div>
+		<div class="flex-a"><div class="flex-b"> </div></div>
+		<div class="flex-a"><div class="flex-b"> </div></div>
+		<div style="padding-top: 20px;"></div>
+
+		<div style="margin-left: 20px;">
+			<div class="middle-name-a">
+				<div class="middle-name-b1">客户姓名：{{pay_member_name}}</div>
+				<div class="middle-name-b2">通知时间：{{tzsj_time}}</div>
+			</div>
+		</div>
+
+		<el-table :header-cell-style="{ background: '#eef1f6', color: '#606266'}"
+				  v-loading="loading" ref="multipleTable" border
+				  class="eltable" :data="list" style="font-size: 11px">
+
+			<el-table-column align="center" property="fcxx_fjbh" label="资产编号">
+			</el-table-column>
+
+			<el-table-column align="center" property="yssj_fymc" label="费用名称">
+			</el-table-column>
+
+			<el-table-column align="center" property="yssj_ysje" label="应收金额">
+			</el-table-column>
+
+			<el-table-column align="center" property="yssj_kstime" label="开始日期">
+				<template slot-scope="scope">
+					{{parseTime(scope.row.yssj_kstime,'{y}-{m}-{d}')}}
+				</template>
+			</el-table-column>
+
+			<el-table-column align="center" property="yssj_jztime" label="结束日期">
+				<template slot-scope="scope">
+					{{parseTime(scope.row.yssj_jztime,'{y}-{m}-{d}')}}
+				</template>
+			</el-table-column>
+
+			<el-table-column align="center" property="yssj_fydj" label="费用单价" width="70">
+			</el-table-column>
+
+			<el-table-column align="center" property="cbgl_sqsl" label="上期数" width="60">
+			</el-table-column>
+
+			<el-table-column align="center" property="cbgl_bqsl" label="本期数" width="60">
+			</el-table-column>
+
+			<el-table-column align="center" property="cbgl_cbyl" label="用量" width="70">
+			</el-table-column>
+
+			<el-table-column align="center" property="cbgl_ybbl" label="倍率" width="50">
+			</el-table-column>
+
+		</el-table>
+
+		<div style="padding-top: 30px;"></div>
+		<div style="margin-left: 20px; color: #777777; margin-bottom: 10px;">合计：{{total_money}} 元</div>
+	</el-card>
+</div>
+
+{/block}
+{block name="script"}
+
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script>
+	new Vue({
+		el: '#app',
+		components:{
+		},
+		data: function() {
+			return {
+				searchData:{
+					syt_id:7,
+				},
+				loading: false,
+				page_data: {
+					limit: 10000,
+					page: 1,
+					total:10000,
+				},
+				single:true,
+				multiple:true,
+				search_visible:true,
+				list: [],
+
+				title_name:'',
+				tzsj_time:'',
+				pay_member_name:'李帝城',
+				total_money:100,
+			}
+		},
+		methods:{
+			index(){
+				let param = {limit:this.page_data.limit,page:this.page_data.page,order:this.order,sort:this.sort}
+				Object.assign(param, this.searchData,this.urlobj)
+				this.loading = true
+				axios.post(base_url + '/Syt/printIndexTzd',param).then(res => {
+					if (res.data.status == 200) {
+						this.list = res.data.data.data
+
+						this.title_name = res.data.title_name
+						this.tzsj_time = res.data.tzsj_time
+						this.pay_member_name = res.data.pay_member_name
+						this.total_money = res.data.total_money
+
+						this.loading = false
+					} else {
+						this.$message.error(res.data.msg);
+					}
+				})
+			},
+		},
+		mounted(){
+			this.index()
+		},
+	})
+</script>
+<style>
+
+	.el-table eltable {color: #777777; width: 10px; }
+
+	.el-table__header tr, .el-table__header th {color: #777777; padding: 0; height: 11px; font-size: 11px; }
+
+	.title-name {color: #777777; font-size: 30px; text-align: center; padding-bottom: 5px; }
+
+	.flex-a { display: flex; justify-content: center; }
+
+	.flex-b { border-bottom: #777777 1px solid; width: 70%; align-items: center; margin-bottom: 3px; }
+
+	.middle-name-a {color: #777777; display: flex; justify-content: center; height: 30px; }
+
+	.middle-name-b1 {color: #777777; width: 66%; }
+
+	.middle-name-b2 {color: #777777; width: 33%; }
+
+	.middle-name-b3 {color: #777777; width: 33%; }
+
+	.el-table--scrollable-x .el-table__body-wrapper {
+		overflow-x: hidden;
+	}
+
+	.el-card__body {
+		padding-top: 15px;
+		padding-bottom: 15px;
+		padding-left: 5px;
+		padding-right: 5px;
+	}
+
+</style>
+{/block}

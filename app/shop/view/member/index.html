@@ -1,0 +1,501 @@
+{extend name='common/container'}
+{block name="content"}
+<div style="margin:0 15px 15px 15px;">
+<el-card shadow="never" style="min-height:650px;">
+<div v-if="search_visible" id="search" class="search">
+	<el-form ref="form" size="small" :model="searchData" inline>
+		<el-form-item label="客户名称">
+			<el-input id="member_name" v-model="searchData.member_name"  style="width:150px;" placeholder="请输入客户名称"></el-input>
+		</el-form-item>
+		<el-form-item label="客户手机">
+			<el-input id="member_tel" v-model="searchData.member_tel"  style="width:150px;" placeholder="请输入客户手机"></el-input>
+		</el-form-item>
+		<el-form-item label="客户性别">
+			<el-select style="width:150px" v-model="searchData.member_sex" filterable clearable placeholder="请选择">
+				<el-option key="0" label="男" value="1"></el-option>
+				<el-option key="1" label="女" value="2"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="证件类型">
+			<el-select   style="width:150px" v-model="searchData.zjlx_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in zjlx_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="证件号码">
+			<el-input id="member_zjhm" v-model="searchData.member_zjhm"  style="width:150px;" placeholder="请输入证件号码"></el-input>
+		</el-form-item>
+		<el-form-item label="客户类别">
+			<el-select   style="width:150px" v-model="searchData.khlb_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in khlb_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<!--<el-form-item label="房产信息">
+		</el-form-item>-->
+
+		<el-form-item label="房产信息">
+			<el-select  remote :remote-method="remoteFcxxidList"  style="width:150px" v-model="searchData.fcxx_id" filterable clearable placeholder="请选择搜索">
+				<el-option v-for="(item,i) in fcxx_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+
+		<el-form-item label="车位信息">
+			<el-select  remote :remote-method="remoteCeweidList"  style="width:150px" v-model="searchData.cewei_id" filterable clearable placeholder="请选择搜索">
+				<el-option v-for="(item,i) in cewei_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+
+<!--		<el-form-item label="车位信息">-->
+<!--			<treeselect style="width:150px" :default-expand-level="2" v-model="searchData.cewei_id" :options="cewei_id" :normalizer="normalizer" :show-count="true" placeholder="请选择车位信息"/>-->
+<!--		</el-form-item>-->
+		<search-tool :search_data.sync="searchData" @refesh_list="index"></search-tool>
+	</el-form>
+</div>
+<div class="btn-group" style="margin-top:10px;margin-bottom:10px;">
+	<div>
+		<el-button v-for="item in button_group" :key="item.access" v-if="checkPermission(item.access,'{:implode(',',session('shop.access'))}','{:session('shop.role_id')}',[1])" :disabled="$data[item.disabled]" :type="item.color" size="mini" :icon="item.icon" @click="fn(item.clickname)">
+			<span v-if="item.batch" v-text="$data['batchUpdateStatus']?'批量保存':'批量编辑'"></span>
+			<span v-else v-text="item.name"></span>
+		</el-button>
+	</div>
+	<div><table-tool :search_visible.sync="search_visible"   @refesh_list="index"></table-tool></div>
+</div>
+<el-table :row-class-name="rowClass" @selection-change="selection"  @row-click="handleRowClick"  row-key="member_id"  :header-cell-style="{ background: '#eef1f6', color: '#606266' }" @sort-change='sortChange' v-loading="loading"  ref="multipleTable" border class="eltable" :data="list" :summary-method="getSummaries" show-summary style="width: 100%">
+	<el-table-column align="center" type="selection" width="42"></el-table-column>
+	<el-table-column align="center" type = '' property="member_id"  label="客户编号"  width="70">
+	</el-table-column>
+	<el-table-column align="center"  property="member_name"  label="客户名称" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="member_tel"  label="客户手机" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="member_sex"  label="客户性别" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<el-tag type="primary" v-if="scope.row.member_sex == '1'" size="mini" effect="dark">男</el-tag>
+			<el-tag type="warning" v-if="scope.row.member_sex == '2'" size="mini" effect="dark">女</el-tag>
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="member_zjhm"  label="证件号码" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="khlb_id"  label="客户类别" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="khlx_id"  label="客户类型" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="member_yucun" sortable='custom' label="预存金额" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="member_yingshou" sortable='custom' label="应收金额" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column :fixed="ismobile()?false:'right'" label="操作" align="center" width="190">
+		<template slot-scope="scope">
+			<div v-if="scope.row.member_id">
+				<el-button v-if="checkPermission('/shop/Member/update.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-edit" type="primary" @click="update(scope.row)" >修改</el-button>
+				<el-button v-if="checkPermission('/shop/Member/delete.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-delete" type="danger" @click="del(scope.row)" >删除</el-button>
+			</div>
+		</template>
+	</el-table-column>
+</el-table>
+<Page :total="page_data.total" :page.sync="page_data.page" :limit.sync="page_data.limit" @pagination="index" />
+</el-card>
+
+<!--添加-->
+<Add :show.sync="dialog.addDialogStatus" size="small" @refesh_list="index"></Add>
+<!--修改-->
+<Update :info="updateInfo" :show.sync="dialog.updateDialogStatus" size="small" @refesh_list="index"></Update>
+<!--导入弹窗-->
+<import :show.sync="dialog.importDataDialogStatus" import_url='/Member/importData' @refesh_list="index"></import>
+<!--查看详情-->
+<Detail :info="detailInfo" :show.sync="dialog.detailDialogStatus" size="small" @refesh_list="index"></Detail>
+<!--关联资产-->
+<Glfangchan :info="glfangchanInfo" :show.sync="dialog.glfangchanDialogStatus" size="small" @refesh_list="index"></Glfangchan>
+<!--关联车位-->
+<Glchewei :info="glcheweiInfo" :show.sync="dialog.glcheweiDialogStatus" size="small" @refesh_list="index"></Glchewei>
+<!--关联车辆-->
+<Glcar :info="glcarInfo" :show.sync="dialog.glcarDialogStatus" size="small" @refesh_list="index"></Glcar>
+<!--客户资产-->
+<Fcxx :info="fcxxInfo" :show.sync="dialog.fcxxDialogStatus" size="small"></Fcxx>
+<!--车位信息-->
+<Cewei :info="ceweiInfo" :show.sync="dialog.ceweiDialogStatus" size="small"></Cewei>
+<!--车辆信息-->
+<DialogUrl :info="dialogUrlInfo" :show.sync="dialog.dialogUrlDialogStatus" size="small"></DialogUrl>
+<!--导出弹窗-->
+<el-dialog title="导出进度条" :visible="dumpshow" :before-close="closedialog" width="500px">
+	<el-progress :percentage="percentage"></el-progress>
+</el-dialog>
+
+</div>
+
+{/block}
+{block name="script"}
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script src="__PUBLIC__/assets/libs/treeselect/vue-treeselect.umd.min.js"></script>
+<link rel="stylesheet" href="__PUBLIC__/assets/libs/treeselect/vue-treeselect.min.css">
+<script src="__PUBLIC__/assets/libs/xlsx/xlsx.core.min.js"></script>
+<script src="__PUBLIC__/components/shop/member/add.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/member/update.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/member/detail.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/member/glfangchan.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/member/glchewei.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/member/glcar.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/member/fcxx.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/member/cewei.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/member/dialogUrl.js?v=<?php echo rand(1000,9999)?>"></script>
+<script>
+new Vue({
+	el: '#app',
+	components:{
+		'treeselect':VueTreeselect.Treeselect,
+	},
+	data: function() {
+		return {
+			dialog: {
+				addDialogStatus : false,
+				updateDialogStatus : false,
+				importDataDialogStatus : false,
+				detailDialogStatus : false,
+				glfangchanDialogStatus : false,
+				glcheweiDialogStatus : false,
+				glcarDialogStatus : false,
+				fcxxDialogStatus : false,
+				ceweiDialogStatus : false,
+				dialogUrlDialogStatus : false,
+			},
+			searchData:{},
+			button_group:[
+				{name:'添加',color:'success',access:'/shop/Member/add.html',icon:'el-icon-plus',disabled:'',clickname:'add'},
+				{name:'修改',color:'primary',access:'/shop/Member/update.html',icon:'el-icon-edit',disabled:'single',clickname:'update'},
+				{name:'删除',color:'danger',access:'/shop/Member/delete.html',icon:'el-icon-delete',disabled:'multiple',clickname:'del'},
+				{name:'导入',color:'warning',access:'/shop/Member/importData.html',icon:'el-icon-upload',disabled:'',clickname:'importData'},
+				{name:'导出',color:'warning',access:'/shop/Member/dumpdata.html',icon:'el-icon-download',disabled:'',clickname:'dumpdata'},
+				{name:'查看详情',color:'info',access:'/shop/Member/detail.html',icon:'el-icon-view',disabled:'single',clickname:'detail'},
+				{name:'客户资产',color:'primary',access:'/shop/Member/fcxx.html',icon:'el-icon-plus',disabled:'single',clickname:'fcxx'},
+				{name:'车位信息',color:'primary',access:'/shop/Member/cewei.html',icon:'el-icon-plus',disabled:'single',clickname:'cewei'},
+				{name:'车辆信息',color:'primary',access:'/shop/Member/dialogUrl.html',icon:'el-icon-plus',disabled:'single',clickname:'dialogUrl'},
+				{name:'关联资产',color:'success',access:'/shop/Member/glfangchan.html',icon:'el-icon-edit',disabled:'single',clickname:'glfangchan'},
+				{name:'关联车位',color:'success',access:'/shop/Member/glchewei.html',icon:'el-icon-edit',disabled:'single',clickname:'glchewei'},
+				{name:'关联车辆',color:'success',access:'/shop/Member/glcar.html',icon:'el-icon-edit',disabled:'single',clickname:'glcar'},
+				{name:'认领审核',color:'warning',access:'/shop/Member/rlsh.html',icon:'el-icon-edit-outline',disabled:'single',clickname:'rlsh'},
+				{name:'回退审核',color:'danger',access:'/shop/Member/htsh.html',icon:'el-icon-edit-outline',disabled:'single',clickname:'htsh'},
+			],
+			loading: false,
+			page_data: {
+				limit: 20,
+				page: 1,
+				total:20,
+			},
+			order:'',
+			sort:'',
+			ids: [],
+			single:true,
+			multiple:true,
+			search_visible:false,
+			list: [],
+			zjlx_id: [],
+			khlb_id: [],
+			fcxx_id: [],
+			cewei_id: [],
+			updateInfo:{},
+			detailInfo:{},
+			glfangchanInfo:{},
+			glcheweiInfo:{},
+			glcarInfo:{},
+			fcxxInfo:{},
+			ceweiInfo:{},
+			dialogUrlInfo:{},
+			exceldata:[],
+			dumppage:1,
+			ws:{},
+			dumpshow:false,
+			percentage:0,
+			filename:'',
+			sum_member_yucun:'',
+			sum_member_yingshou:'',
+		}
+	},
+	methods:{
+		remoteFcxxidList(val){
+			axios.post(base_url + '/Member/remoteFcxxidList',{queryString:val}).then(res => {
+				if(res.data.status == 200){
+					this.fcxx_id = res.data.data
+				}
+			})
+		},
+		remoteCeweidList(val){
+			axios.post(base_url + '/Member/remoteCeweidList',{queryString:val}).then(res => {
+				if(res.data.status == 200){
+					this.cewei_id = res.data.data
+				}
+			})
+		},
+		index(){
+			let param = {limit:this.page_data.limit,page:this.page_data.page,order:this.order,sort:this.sort}
+			Object.assign(param, this.searchData,this.urlobj)
+			this.loading = true
+			axios.post(base_url + '/Member/index',param).then(res => {
+				if(res.data.status == 200){
+					this.list = res.data.data.data
+					this.page_data.total = res.data.data.total
+					this.sum_member_yucun = res.data.sum_member_yucun
+					this.sum_member_yingshou = res.data.sum_member_yingshou
+					this.loading = false
+					if(this.page_data.page == 1){
+						this.zjlx_id = res.data.sql_field_data.zjlx_ids
+						this.khlb_id = res.data.sql_field_data.khlb_ids
+						// this.cewei_id = res.data.sql_field_data.cewei_ids
+					}
+				}else{
+					this.$message.error(res.data.msg);
+				}
+			})
+		},
+		updateExt(row,field){
+			if(row.member_id){
+				axios.post(base_url + '/Member/updateExt',{member_id:row.member_id,[field]:row[field]}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}
+		},
+		add(){
+			this.dialog.addDialogStatus = true
+		},
+		update(row){
+			let id = row.member_id ? row.member_id : this.ids.join(',')
+			axios.post(base_url + '/Member/getUpdateInfo',{member_id:id}).then(res => {
+				if(res.data.status == 200){
+					this.dialog.updateDialogStatus = true
+					this.updateInfo = res.data.data
+				}else{
+					this.$message.error(res.data.msg)
+				}
+			})
+		},
+		del(row){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				let ids = row.member_id ? row.member_id : this.ids.join(',')
+				axios.post(base_url + '/Member/delete',{member_id:ids}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+						this.index()
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}).catch(() => {})
+		},
+		importData(){
+			this.dialog.importDataDialogStatus = true
+		},
+		dumpdata(){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				this.dumpshow = true
+				this.confirmdumpdata()
+			}).catch(() => {})
+		},
+		confirmdumpdata(){
+			let query = {page:this.dumppage,order:this.order,sort:this.sort}
+			Object.assign(query, this.searchData,{member_id:this.ids.join(',')},this.urlobj)
+			axios.post(base_url + '/Member/dumpdata',query).then(res => {
+				if(res.data.state == 'ok'){
+					this.percentage = res.data.percentage
+					this.dumppage = this.dumppage + 1
+					this.confirmdumpdata()
+				}else{
+					this.dumpshow = false
+					this.dumppage = 1
+					location.href = base_url + '/Member/dumpdata?state=ok&'+param(query)
+				}
+			})
+		},
+		closedialog(){
+			this.dumpshow = false
+		},
+		jumpUrl(row){
+			let query = {}
+			let ids = row.member_id ? row.member_id : this.ids.join(',')
+			let data = {}
+			this.list.forEach((item,i) => {
+				if(item.member_id == ids){
+					data = this.list[i]
+				}
+			})
+			Object.assign(query, {member_id:data.member_id})
+			Object.assign(query, {jumpstate:1})
+			window.location.href = base_url+"/Glzcgl/index?"+param(query)
+		},
+		detail(row){
+			this.dialog.detailDialogStatus = true
+			this.detailInfo = {member_id:row.member_id ? row.member_id : this.ids.join(',')}
+		},
+		fcxx(row){
+			let ids = row.member_id ? row.member_id : this.ids.join(',')
+			let data = {}
+			this.list.forEach((item,i) => {
+				if(item.member_id == ids){
+					data = this.list[i]
+				}
+			})
+			this.fcxxInfo = data
+			this.dialog.fcxxDialogStatus = true
+		},
+		cewei(row){
+			let ids = row.member_id ? row.member_id : this.ids.join(',')
+			let data = {}
+			this.list.forEach((item,i) => {
+				if(item.member_id == ids){
+					data = this.list[i]
+				}
+			})
+			this.ceweiInfo = data
+			this.dialog.ceweiDialogStatus = true
+		},
+		dialogUrl(row){
+			let ids = row.member_id ? row.member_id : this.ids.join(',')
+			let data = {}
+			this.list.forEach((item,i) => {
+				if(item.member_id == ids){
+					data = this.list[i]
+				}
+			})
+			this.dialogUrlInfo = data
+			this.dialog.dialogUrlDialogStatus = true
+		},
+		glfangchan(row){
+			let id = row.member_id ? row.member_id : this.ids.join(',')
+			axios.post(base_url + '/Member/getGlfangchanInfo',{member_id:id}).then(res => {
+				if(res.data.status == 200){
+					this.dialog.glfangchanDialogStatus = true
+					this.glfangchanInfo = res.data.data
+				}else{
+					this.$message.error(res.data.msg)
+				}
+			})
+		},
+		glchewei(row){
+			let id = row.member_id ? row.member_id : this.ids.join(',')
+			axios.post(base_url + '/Member/getGlcheweiInfo',{member_id:id}).then(res => {
+				if(res.data.status == 200){
+					this.dialog.glcheweiDialogStatus = true
+					this.glcheweiInfo = res.data.data
+				}else{
+					this.$message.error(res.data.msg)
+				}
+			})
+		},
+		glcar(row){
+			let id = row.member_id ? row.member_id : this.ids.join(',')
+			axios.post(base_url + '/Member/getGlcarInfo',{member_id:id}).then(res => {
+				if(res.data.status == 200){
+					this.dialog.glcarDialogStatus = true
+					this.glcarInfo = res.data.data
+				}else{
+					this.$message.error(res.data.msg)
+				}
+			})
+		},
+		rlsh(row){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				let ids = row.member_id ? row.member_id : this.ids.join(',')
+				axios.post(base_url + '/Member/rlsh',{member_id:ids}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+						this.index()
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}).catch(() => {})
+		},
+		htsh(row){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				let ids = row.member_id ? row.member_id : this.ids.join(',')
+				axios.post(base_url + '/Member/htsh',{member_id:ids}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+						this.index()
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}).catch(() => {})
+		},
+		selection(selection) {
+			this.ids = selection.map(item => item.member_id)
+			this.single = selection.length != 1
+			this.multiple = !selection.length
+		},
+		handleRowClick(row, rowIndex,event){
+			if(event.target.className !== 'el-input__inner'){
+				this.$refs.multipleTable.toggleRowSelection(row)
+			}
+		},
+		rowClass ({ row, rowIndex }) {
+			for(let i=0;i<this.ids.length;i++) {
+				if (row.member_id === this.ids[i]) {
+					return 'rowLight'
+				}
+			}
+		},
+		sortChange(val){
+			if(val.order == 'descending'){
+				this.order= 'desc'
+			}
+			if(val.order == 'ascending'){
+				this.order= 'asc'
+			}
+			this.sort = val.prop
+			this.index()
+		},
+		/** 转换菜单数据结构 */
+		normalizer(node) {
+			if (node.children && !node.children.length) {
+				delete node.children
+			}
+			return {
+				id: node.val,
+				label: node.key,
+				children: node.children
+			}
+		},
+		getSummaries(param) {
+			const { columns, data } = param;
+			const sums = [];
+			columns.forEach((column, index) => {
+				if(index === 1) {
+					sums[index] = '合计'
+				}
+				if(column.label === '预存金额') {
+					sums[index] = this.sum_member_yucun
+				}
+				if(column.label === '应收金额') {
+					sums[index] = this.sum_member_yingshou
+				}
+			})
+			return sums
+		},
+		fn(method){
+			this[method](this.ids)
+		},
+	},
+	mounted(){
+		this.index()
+	},
+})
+</script>
+{/block}

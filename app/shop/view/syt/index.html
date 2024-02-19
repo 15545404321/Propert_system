@@ -1,0 +1,896 @@
+{extend name='common/container'}
+{block name="content"}
+<div style="margin:0 15px 15px 15px;" class="basss">
+
+    <el-row :gutter="10" style="width:100%;position: fixed; bottom:15px;left:15px; z-index:999">
+        <el-col :span="4" class="hidden-sm-and-down">
+            <div style="background-color: white;display: block; border-radius: 3px; padding: 10px;">
+                <el-button style="width:100%;" type="warning" @click="XianshiSyt">显示/隐藏收银台</el-button>
+            </div>
+        </el-col>
+    </el-row>
+
+    <el-row :gutter="10">
+        <el-col :span="4" class="hidden-sm-and-down">
+            <div style="background-color: white;display: block; border-radius: 3px; padding: 10px;">
+                <el-select  remote :remote-method="remoteFcxxidList" @change="index" style="width:100%;" v-model="searchData.fcxx_id" filterable clearable placeholder="房间编号搜索">
+                    <el-option v-for="(item,i) in fcxx_id" :key="i" :label="item.key" :value="item.val"></el-option>
+                </el-select>
+                
+                <div style="padding-top: 10px"></div>
+                <el-select  remote :remote-method="remoteCeweiidList" @change="index" style="width:100%;" v-model="searchData.cewei_id" filterable clearable placeholder="车位编号搜索">
+                    <el-option v-for="(item,i) in cewei_id" :key="i" :label="item.key" :value="item.val"></el-option>
+                </el-select>
+                
+                <div style="padding-top: 10px"></div>
+                <el-select  remote :remote-method="remoteMemberidList" @change="index" style="width:100%;" v-model="searchData.member_id" filterable clearable placeholder="住户名称搜索">
+                    <el-option v-for="(item,i) in member_id" :key="i" :label="item.key" :value="item.val"></el-option>
+                </el-select>
+                
+
+<!--房产-->        
+              
+                <div style="padding-top: 10px;" ></div>
+                <div class="down-tree">
+                    <el-tree class="tree-border" 
+                    :data="options" 
+                    ref="menu" 
+                    node-key="access"  
+                    show-checkbox 
+                    
+                    
+                    :check-strictly="true"
+                    @check="treeChange"
+                    check-on-click-node
+                    :highlight-current='true'
+                    
+                    empty-text="加载中，请稍后" 
+                    :props="defaultProps"
+                    ></el-tree>
+               
+        	    </div>                
+<!--车位-->                
+                <div style="padding-top: 10px;" ></div>
+                <div class="down-tree">
+                    <el-tree class="tree-border" 
+                    :data="optionsc" 
+                    node-key="accessc"  
+                    show-checkbox 
+                    
+                    ref="menuc"
+                    :check-strictly="true"
+                    @check="treeChangec"
+                    check-on-click-node
+                    :highlight-current='true'
+                    
+                    empty-text="加载中，请稍后" 
+                    :props="defaultPropsc"
+                    ></el-tree>
+               
+        	    </div>
+            
+            
+            </div>
+
+        </el-col>
+
+        <el-col :xs="24" :sm="24" :md="20" :lg="20">
+            <el-card shadow="never" style="min-height:500px;">
+
+
+                <el-dropdown style="float: right;" trigger="click">
+
+                    <el-button style="float: right; margin-right: 15px;" type="primary">
+                        更多菜单<i class="el-icon-arrow-down el-icon--right"></i>
+                    </el-button>
+                    <el-button style="float: right;margin-right: 10px;" type="primary" @click="ceweiFy">生成车位费用</el-button>
+                    <el-button style="float: right;margin-right: 10px;" type="primary" @click="cbpc">抄表管理</el-button>
+                    <el-button style="float: right;margin-right: 10px;" type="primary" @click="scys">生成应收</el-button>
+                    <el-button style="float: right;margin-right: 10px;" type="primary" @click="zjysdialogUrl">追加应收</el-button>
+
+                    <el-dropdown-menu slot="dropdown">
+                        <el-dropdown-item @click.native.prevent="ysktzdialogUrl">预收款台账</el-dropdown-item>
+                        <el-dropdown-item @click.native.prevent="lsystzdialogUrl">临时应收台账</el-dropdown-item>
+                        <el-dropdown-item @click.native.prevent="yajindialogUrl">押金台账</el-dropdown-item>
+                        <el-dropdown-item @click.native.prevent="skjldialogUrl">收款记录</el-dropdown-item>
+                        <el-dropdown-item @click.native.prevent="printTzd">打印缴费通知单</el-dropdown-item>
+                        <el-dropdown-item @click.native.prevent="ceweiFyLists">车位费用管理</el-dropdown-item>
+                    </el-dropdown-menu>
+                </el-dropdown>
+
+                <div style="padding-top: 40px"></div>
+                <div v-if="search_visible" id="search" class="search">
+                    <el-form ref="form" size="small" :model="searchData" inline>
+                        <el-form-item label="选择房间">
+                            <el-select  remote :remote-method="remoteFcxxidList" @change="index" style="width:150px" v-model="searchData.fcxx_id" filterable clearable placeholder="房间编号搜索">
+                                <el-option v-for="(item,i) in fcxx_id" :key="i" :label="item.key" :value="item.val"></el-option>
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item label="选择车位" :model="searchData" inline>
+                            <el-select  remote :remote-method="remoteCeweiidList" @change="index" style="width:150px" v-model="searchData.cewei_id" filterable clearable placeholder="车位编号搜索">
+                                <el-option v-for="(item,i) in cewei_id" :key="i" :label="item.key" :value="item.val"></el-option>
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item label="住户名称">
+                            <el-select  remote :remote-method="remoteMemberidList" @change="index" style="width:150px" v-model="searchData.member_id" filterable clearable placeholder="请选择">
+                                <el-option v-for="(item,i) in member_id" :key="i" :label="item.key" :value="item.val"></el-option>
+                            </el-select>
+                        </el-form-item>
+                       <el-form-item label="费用标准">
+                            <el-select  remote :remote-method="remoteFybzidList" @change="index" style="width:150px" v-model="searchData.fybz_id" filterable clearable placeholder="请选择">
+                                <el-option v-for="(item,i) in fybz_id" :key="i" :label="item.key" :value="item.val"></el-option>
+                            </el-select>
+                        </el-form-item>
+                        <search-tool :search_data.sync="searchData" @refesh_list="index"></search-tool>
+                    </el-form>
+                </div>
+                <template v-for="(item,index) in list_fcxx_cewei" >
+                    <template v-for="(item1,index1) in item.fcxx" >
+                        <div style="padding-top: 10px;padding-bottom: 10px; color: #5f5f5f">{{item1.title}}</div>
+                        <el-table :row-class-name="rowClass"
+                                  @selection-change="handleSelectionChange($event,item1.tableIndex)"
+                                  row-key="yssj_id"
+                                  :header-cell-style="{ background: '#eef1f6', color: '#606266' }"
+                                  @sort-change='sortChange' v-loading="loading"
+                                  ref="multipleTable" border class="eltable"
+                                  height="250" :data="item1.table" :key="item1.tableIndex" style="width: 100%">
+                            <el-table-column align="center" type="selection" width="42"></el-table-column>
+                            <el-table-column align="left" type = '' property="yssj_id"  label="编号"  width="70">
+                            </el-table-column>
+                            <el-table-column align="center"  property="fcxx.fcxx_fjbh"  label="房产编号" show-overflow-tooltip width="">
+                            </el-table-column>
+                            <el-table-column align="center"  property="yssj_fymc"  label="费用名称" show-overflow-tooltip width="">
+                            </el-table-column>
+                            <el-table-column align="left"  property="yssj_cwyf"  label="财务月份" show-overflow-tooltip width="">
+                            </el-table-column>
+                            <el-table-column align="left"  property="yssj_kstime"  label="开始日期" show-overflow-tooltip width="">
+                                <template slot-scope="scope">
+                                    {{parseTime(scope.row.yssj_kstime,'{y}-{m}-{d}')}}
+                                </template>
+                            </el-table-column>
+                            <el-table-column align="left"  property="yssj_jztime"  label="截至日期" show-overflow-tooltip width="">
+                                <template slot-scope="scope">
+                                    {{parseTime(scope.row.yssj_jztime,'{y}-{m}-{d}')}}
+                                </template>
+                            </el-table-column>
+                            <el-table-column align="left"  property="yssj_fydj"  label="费用单价" show-overflow-tooltip width="">
+                            </el-table-column>
+                            <el-table-column align="left"  property="yssj_ysje"  label="应收金额" show-overflow-tooltip width="">
+                            </el-table-column>
+                            <el-table-column align="center"  property="fylx.fylx_name"  label="费用类型" show-overflow-tooltip width="">
+                            </el-table-column>
+                            <el-table-column align="center"  property="fybz.fybz_name"  label="费用标准" show-overflow-tooltip width="">
+                            </el-table-column>
+                        </el-table>
+                    </template>
+                    <template v-for="(item1,index1) in item.cewei" >
+                        <div style="padding-top: 10px;padding-bottom: 10px; color: #5f5f5f">{{item1.title}}</div>
+                        <el-table :row-class-name="rowClass"
+                                  @selection-change="handleSelectionChange($event,item1.tableIndex)"
+                                  row-key="yssj_id"
+                                  :header-cell-style="{ background: '#eef1f6', color: '#606266' }"
+                                  @sort-change='sortChange' v-loading="loading"
+                                  ref="multipleTable" border class="eltable"
+                                  height="250" :data="item1.table" :key="item1.tableIndex" style="width: 100%">
+                            <el-table-column align="center" type="selection" width="42"></el-table-column>
+                            <el-table-column align="left" type = '' property="yssj_id"  label="编号"  width="70">
+                            </el-table-column>
+                            <el-table-column align="center"  property="cewei.cewei_name"  label="车位编号" show-overflow-tooltip width="">
+                            </el-table-column>
+                            <el-table-column align="center"  property="yssj_fymc"  label="费用名称" show-overflow-tooltip width="">
+                            </el-table-column>
+                            <el-table-column align="left"  property="yssj_cwyf"  label="财务月份" show-overflow-tooltip width="">
+                            </el-table-column>
+                            <el-table-column align="left"  property="yssj_kstime"  label="开始日期" show-overflow-tooltip width="">
+                                <template slot-scope="scope">
+                                    {{parseTime(scope.row.yssj_kstime,'{y}-{m}-{d}')}}
+                                </template>
+                            </el-table-column>
+                            <el-table-column align="left"  property="yssj_jztime"  label="截至日期" show-overflow-tooltip width="">
+                                <template slot-scope="scope">
+                                    {{parseTime(scope.row.yssj_jztime,'{y}-{m}-{d}')}}
+                                </template>
+                            </el-table-column>
+                            <el-table-column align="left"  property="yssj_fydj"  label="费用单价" show-overflow-tooltip width="">
+                            </el-table-column>
+                            <el-table-column align="left"  property="yssj_ysje"  label="应收金额" show-overflow-tooltip width="">
+                            </el-table-column>
+                            <el-table-column align="center"  property="fylx.fylx_name"  label="费用类型" show-overflow-tooltip width="">
+                            </el-table-column>
+                            <el-table-column align="center"  property="fybz.fybz_name"  label="费用标准" show-overflow-tooltip width="">
+                            </el-table-column>
+                        </el-table>
+                    </template>
+                </template>
+            </el-card>
+            <el-card style="bottom:15px;left:15px; min-height:350px;background-color:#F0F7FF;background-color:#F0F7FF; background-image:url(/img/syt.png); background-repeat:no-repeat;">
+                  
+            </el-card>
+            
+			<transition name="fade">
+            <el-card v-show="xianshi" style="z-index: 998;position: fixed; bottom:15px;right:15px; min-height:350px; width:1000px;font-size:12px;">
+                <div style="width:480px; padding:10px; line-height:30px;">收费项目: {{ checkedFylxs }}</div>
+                <div style="width:480px; padding:10px; line-height:30px;">
+                    <el-form>
+                        <el-checkbox-group v-model="checkedFylxs">
+                            <el-checkbox v-for="(item,i) in fybz_id" :key="i" :label="item.val">{{item.key}}</el-checkbox>
+                        </el-checkbox-group>
+                        <el-button size="small" type="info"
+                                   @click="searchDataFun">筛选费用</el-button>
+                    </el-form>
+                    <!--<div style="clear:both;"></div>-->
+                    </div>
+            </el-card>
+            </transition>
+			<transition name="fade">
+            <el-card v-show="xianshi" shadow="never" style="min-height:350px;position: fixed; bottom:15px;right: 15px; z-index: 999; width:500px; background-color:#F0F7FF">
+                <el-form size="small" ref="form" :model="form" :rules="rules" label-width="100px" >
+                    <el-row >
+                        <el-col :span="24">
+                            <el-form-item label="付款方式" prop="skfs_id">
+                                <el-select style="width:200px;" v-model="form.skfs_id" filterable clearable placeholder="请选择付款方式">
+                                    <el-option v-for="(item,i) in skfs_ids" :key="i" :label="item.key" :value="item.val.toString()"></el-option>
+                                </el-select>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                    <el-row >
+                        <el-col :span="24">
+                            <el-form-item label="应收金额" prop="syt_ysje">
+                                <el-input disabled style="width:200px;" v-model="form.syt_ysje" autoComplete="off" clearable  placeholder="应收金额"></el-input>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                    <el-row >
+                        <el-col :span="24">
+                            <el-form-item label="收款金额" prop="syt_skje">
+                                <el-input-number controls-position="right" style="width:200px;" autoComplete="off" v-model="form.syt_skje" clearable :min="0" placeholder="请输入收款金额"/>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                    <el-row >
+                        <el-col :span="24">
+                            <el-form-item label="预收款冲抵" prop="syt_yskcd">
+                                <el-radio-group v-model="form.syt_yskcd">
+                                    <el-radio :disabled="syt_yskcd_disable" :label="1">是</el-radio>
+                                    <el-radio :label="2">否</el-radio>
+                                </el-radio-group>
+                                <div style="display: inline; margin-left: 10px;">预收款余额：{{pay_member_yucun}}</div>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                    <el-row >
+                        <el-col :span="24">
+                            <el-form-item label="其他备注" prop="syt_bz">
+                                <el-input style="width:400px;" v-model="form.syt_bz" autoComplete="off" clearable  placeholder="请输入备注"></el-input>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                    <el-form-item>
+                        <el-button size="small" type="info" @click="submit(0)">确认收款</el-button>
+                        <el-button size="small" type="primary" style="margin-left:50px;" @click="submit(1)">收款并打印</el-button>
+                    </el-form-item>
+                </el-form>
+            </el-card>
+            </transition>
+        </el-col>
+    </el-row>
+
+    <Cbpc :info="cbpcInfo" :show.sync="dialog.cbpcStatus" size="small" @refesh_list="index"></Cbpc>
+    <!--生成应收 -->
+    <Scys :show.sync="dialog.scysStatus" size="small" @refesh_list="index"></Scys>
+    <!--生成车位费用-->
+    <Ceweify :info="ceweiFyInfo" :show.sync="dialog.ceweiFyStatus" size="small" @refesh_list="index"></Ceweify>
+
+    <Ceweifylists :info="ceweiFyListsInfo" :show.sync="dialog.ceweiFyListsStatus" size="small"></Ceweifylists>
+    <!--追加应收-->
+    <Add :info="zjysDialogUrlInfo" :show.sync="dialog.zjysDialogStatus" size="small" @refesh_list="index"></Add>
+    <!--预收款台账-->
+    <Yskt :info="ysktzDialogUrlInfo" :show.sync="dialog.ysktzDialogStatus" size="small"></Yskt>
+    <!--临时应收台账-->
+    <Lsys :info="lsystzDialogUrlInfo" :show.sync="dialog.lsystzDialogStatus" size="small"></Lsys>
+    <!--押金台账-->
+    <yajin :info="yajinDialogUrlInfo" :show.sync="dialog.yajinDialogStatus" size="small"></yajin>
+    <!--收款记录-->
+    <Skjl :info="skjldialogUrlInfo" :show.sync="dialog.skjlDialogStatus" size="small"></Skjl>
+
+    <Print :info="printdialogUrlInfo" :show.sync="dialog.printDialogStatus" size="small"></Print>
+</div>
+
+{/block}
+{block name="script"}
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script src="__PUBLIC__/assets/libs/treeselect/vue-treeselect.umd.min.js"></script>
+<link rel="stylesheet" href="__PUBLIC__/assets/libs/treeselect/vue-treeselect.min.css">
+<script src="__PUBLIC__/components/shop/syt/add.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/syt/yskt.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/syt/lsys.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/syt/yajin.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/syt/skjl.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/syt/ceweiFy.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/syt/ceweiFyLists.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/syt/scys.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/syt/cbpc.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/syt/print.js?v=<?php echo rand(1000,9999)?>"></script>
+
+<script>
+    new Vue({
+        el: '#app',
+        components:{
+            'treeselect':VueTreeselect.Treeselect,
+        },
+        data: function() {
+            return {
+                dialog: {
+                    addDialogStatus : false,
+                    updateDialogStatus : false,
+
+                    zjysDialogStatus : false, // 追加应收
+                    ysktzDialogStatus : false, // 预收款台账
+                    lsystzDialogStatus : false, // 临时应收台账
+                    yajinDialogStatus : false, // 押金台账
+                    skjlDialogStatus : false, // 收款记录
+                    ceweiFyStatus : false, // 生成车位费用
+                    ceweiFyListsStatus : false, // 生成车位费用
+                    scysStatus : false, // 生成车位费用
+                    cbpcStatus : false, // 生成车位费用
+                    printDialogStatus : false, // 生成车位费用
+                },
+
+                zjysDialogUrlInfo:{},
+                ysktzDialogUrlInfo:{},
+                lsystzDialogUrlInfo:{},
+                yajinDialogUrlInfo:{},
+                skjldialogUrlInfo:{},
+                ceweiFyInfo:{},
+                ceweiFyListsInfo:{},
+                scysInfo:{},
+                cbpcInfo:{},
+                printdialogUrlInfo:{},
+
+                searchData:{},
+                button_group:[
+                ],
+                loading: false,
+                page_data: {
+                    limit: 20,
+                    page: 1,
+                    total:20,
+                },
+                order:'',
+                sort:'',
+                ids: [],
+                single:true,
+                multiple:true,
+                search_visible:false,
+                list: [],
+                list_fcxx_cewei: [],
+                treeList:[],
+                fcxx_id: [],
+                cewei_id: [],
+                member_id: [],
+                updateInfo:{},
+                form: {
+                    skfs_id:'',
+                    syt_skje:'',
+                    syt_ysje:'',
+                    old_syt_ysje:'',
+                    syt_bz:'',
+                    yssj_ids:'',
+                    pay_member_id:'',
+                    syt_yskcd:2,
+                    syt_dcje:0,
+                    check_fcxx_id:0
+                },
+                skfs_ids:[],
+                id_arr:{
+                },
+                ysje_arr:{
+                },
+                rules: {
+                    skfs_id:[
+                        {required: true, message: '付款方式不能为空', trigger: 'change'},
+                    ],
+                    syt_ysje:[
+                        {required: true, message: '请勾选付费项', trigger: 'change'},
+                    ],
+                    /*syt_skje:[
+                        {required: true, message: '收款金额不能为空', trigger: 'blur'},
+                    ],*/
+                },
+                yskdc:0,
+                pay_member_yucun:0.00,
+				///////爽加//////////
+				defaultProps: {
+					children: "children",
+					label: "title"
+				},
+				options:[],
+				defaultPropsc: {
+					children: "childrenc",
+					label: "titlec"
+				},
+				optionsc:[],
+				xianshi : false,
+				checkedFylxs: [],
+				fybz_id: [
+
+				],
+				///////爽加//////////
+                syt_yskcd_disable:true
+            }
+        },
+        watch: {
+            "form.syt_yskcd": "yskcdFun",
+        },
+        methods:{
+            yskcdFun() {
+                if(this.form.syt_yskcd == 1) {
+                    var syt_ysje = this.form.old_syt_ysje
+                    var pay_member_yucun = this.pay_member_yucun
+
+                    if (parseFloat(Number(syt_ysje)) > parseFloat(Number(pay_member_yucun))) {
+                        this.form.syt_ysje = syt_ysje - pay_member_yucun;
+                        this.form.syt_dcje = pay_member_yucun;
+                        return;
+                    }
+
+                    this.form.syt_dcje = syt_ysje;
+                    this.form.syt_ysje = 0;
+                }
+
+                if (this.form.syt_yskcd ==2) {
+                    this.form.syt_dcje = 0;
+                    this.form.syt_ysje = this.form.old_syt_ysje
+                }
+            },
+            searchDataFun() {
+                this.searchData.fybz_id = this.checkedFylxs.join(',')
+                this.index()
+            },
+			///////////爽加aaaaa////////////////
+			XianshiSyt(){
+				this.xianshi = !this.xianshi
+			},
+            getRoleAccessCewei(){
+                axios.post(base_url + '/Syt/getRoleAccessCewei').then(res => {
+                    if(res.data.status == 200){
+                        this.optionsc = res.data.menusche
+                    }
+                })
+            },
+            getRoleAccessFcxx(){
+                axios.post(base_url + '/Syt/getRoleAccessFcxx').then(res => {
+                    if(res.data.status == 200){
+                        this.options = res.data.menus
+                    }
+                })
+            },
+			//只能单选，并且跳转//////////////////////////////////////////
+			treeChange(now,menu) {
+                this.clearFun()
+				this.$nextTick(() => {
+				this.$refs.menu.setCheckedKeys([now.access], true);
+                this.searchData.fcxx_id = now.access
+				this.index();
+				})
+			},
+			treeChangec(now,menuc) {
+                this.clearFun()
+				this.$nextTick(() => {
+				this.$refs.menuc.setCheckedKeys([now.accessc], true);
+                this.searchData.cewei_id = now.accessc
+				this.index();
+				})
+			},
+						
+			
+            remoteCeweiidList(val){
+                this.clearFun()
+                axios.post(base_url + '/Syt/remoteCeweiidList',{queryString:val}).then(res => {
+                    if(res.data.status == 200){
+                        this.cewei_id = res.data.data
+                    }
+                })
+            },
+			///////////爽加aaaaa////////////////
+            remoteFcxxidList(val){
+                this.clearFun()
+                axios.post(base_url + '/Syt/remoteFcxxidList',{queryString:val}).then(res => {
+                    if(res.data.status == 200){
+                        this.fcxx_id = res.data.data
+                    }
+                })
+            },
+			
+            remoteMemberidList(val){
+                this.clearFun()
+                axios.post(base_url + '/Syt/remoteMemberidList',{queryString:val}).then(res => {
+                    if(res.data.status == 200){
+
+                        this.member_id = res.data.data
+                    }
+                })
+            },
+            remoteFybzidList(val){
+                this.clearFun()
+                axios.post(base_url + '/syt/remoteFybzidList',{queryString:val}).then(res => {
+                    if(res.data.status == 200){
+                        this.fybz_id = res.data.data
+                    }
+                })
+            },
+            index(){
+                let param = {limit:this.page_data.limit,page:this.page_data.page,order:this.order,sort:this.sort}
+                Object.assign(param, this.searchData,this.urlobj)
+                console.log('index-param:',param)
+                this.loading = true
+                axios.post(base_url + '/Syt/indexCheck',param).then(res => {
+
+                    if(res.data.status == 201){
+                        this.$confirm('该业主有多个资产费用，是否显示?', '提示', {
+                            confirmButtonText: '确定',
+                            cancelButtonText: '取消',
+                            type: 'warning'
+                        }).then(() => {
+                            Object.assign(param, {related:1})
+                            this.sytIndex(param);
+                        }).catch(() => {
+                            Object.assign(param, {related:2})
+                            this.sytIndex(param);
+                        })
+                    } else {
+                        Object.assign(param, {related:2})
+                        this.sytIndex(param);
+                    }
+                })
+            },
+            sytIndex(param) {
+
+                console.log('param-param-sytIndex',param)
+
+                axios.post(base_url + '/Syt/index',param).then(res_res => {
+                    if(res_res.data.status == 200){
+                        this.list_fcxx_cewei = res_res.data.data.data
+                        this.form.pay_member_id = res_res.data.pay_member_id
+                        this.form.check_fcxx_id = res_res.data.check_fcxx_id
+                        this.pay_member_yucun = res_res.data.pay_member_yucun
+                        this.page_data.total = res_res.data.data.total
+                        this.loading = false
+
+                        if(this.page_data.page == 1){
+                            this.treeList = res_res.data.sql_field_data.s
+                        }
+
+                    }else{
+                        this.$message.error(res_res.data.msg);
+                    }
+                })
+            },
+            updateExt(row,field){
+                if(row.yssj_id){
+                    axios.post(base_url + '/Syt/updateExt',{yssj_id:row.yssj_id,[field]:row[field]}).then(res => {
+                        if(res.data.status == 200){
+                            this.$message({message: res.data.msg, type: 'success'})
+                        }else{
+                            this.$message.error(res.data.msg)
+                        }
+                    })
+                }
+            },
+            add(){
+                this.dialog.addDialogStatus = true
+            },
+            update(row){
+                let id = row.yssj_id ? row.yssj_id : this.ids.join(',')
+                axios.post(base_url + '/Syt/getUpdateInfo',{yssj_id:id}).then(res => {
+                    if(res.data.status == 200){
+                        this.dialog.updateDialogStatus = true
+                        this.updateInfo = res.data.data
+                    }else{
+                        this.$message.error(res.data.msg)
+                    }
+                })
+            },
+            del(row){
+                this.$confirm('确定操作吗?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    let ids = row.yssj_id ? row.yssj_id : this.ids.join(',')
+                    axios.post(base_url + '/Syt/delete',{yssj_id:ids}).then(res => {
+                        if(res.data.status == 200){
+                            this.$message({message: res.data.msg, type: 'success'})
+                            this.index()
+                        }else{
+                            this.$message.error(res.data.msg)
+                        }
+                    })
+                }).catch(() => {})
+            },
+            handleSelectionChange(selection,index) {
+                // 选中的数据的ID
+                this.id_arr[index] = selection.map(item => item.yssj_id);
+                var idsarr = [];
+                for(var id_key in this.id_arr) {
+                    for (var id_item in this.id_arr[id_key]){
+                        idsarr.push(this.id_arr[id_key][id_item]);
+                    }
+                }
+
+                // 应收金额
+                var ysje = 0;
+                this.ysje_arr[index] = selection.map(item => item.yssj_ysje)
+                for(var ysje_key in this.ysje_arr) {
+                    for (var ysje_item in this.ysje_arr[ysje_key]){
+                        ysje += parseFloat(this.ysje_arr[ysje_key][ysje_item]);
+                    }
+                }
+
+                // (Number(ysje)).toFixed(2);
+                this.form.syt_ysje = (Number(ysje)).toFixed(2); // 应收金额
+                this.form.old_syt_ysje = (Number(ysje)).toFixed(2); // 应收金额
+                this.form.yssj_ids = idsarr.join(','); // 选中的数据的ID
+                this.single = selection.length != 1;
+                this.multiple = !selection.length;
+
+                this.syt_yskcd_disable = parseFloat(this.form.old_syt_ysje) > parseFloat(this.pay_member_yucun);
+
+                if (parseFloat(this.form.old_syt_ysje) == 0) {
+
+                    this.syt_yskcd_disable = true
+
+                }
+
+                if (parseFloat(this.pay_member_yucun) == 0) {
+
+                    this.syt_yskcd_disable = true
+
+                }
+            },
+            handleRowClick(row, rowIndex,event){
+                if(event.target.className !== 'el-input__inner'){
+                    this.$refs.multipleTable.toggleRowSelection(row)
+                }
+            },
+            rowClass ({ row, rowIndex }) {
+                for(let i=0;i<this.ids.length;i++) {
+                    if (row.yssj_id === this.ids[i]) {
+                        return 'rowLight'
+                    }
+                }
+            },
+            sortChange(val){
+                if(val.order == 'descending'){
+                    this.order= 'desc'
+                }
+                if(val.order == 'ascending'){
+                    this.order= 'asc'
+                }
+                this.sort = val.prop
+                this.index()
+            },
+            /** 转换菜单数据结构 */
+            normalizer(node) {
+                if (node.children && !node.children.length) {
+                    delete node.children
+                }
+                return {
+                    id: node.val,
+                    label: node.key,
+                    children: node.children
+                }
+            },
+            fn(method){
+                this[method](this.ids)
+            },
+
+            submit(val){
+                this.$refs['form'].validate(valid => {
+                    if(valid) {
+                        this.loading = true
+                        axios.post(base_url + '/Syt/submitSk',(this.form)).then(res => {
+                            if(res.data.status == 200){
+                                this.loading = false
+                                this.index();
+                                this.clearFun();
+                                this.$message({message: res.data.msg, type: 'success'})
+                                if (val == 1) {
+                                    this.printdialogUrlInfo = {
+                                        funame:'printIndexLists',
+                                        syt_id:res.data.data.syt_id,
+                                        pjlx_id:1,
+                                        print_ys:res.data.data.print_ys}
+                                    this.dialog.printDialogStatus = true
+                                }
+
+                            }else{
+                                this.loading = false
+                                this.$message.error(res.data.msg)
+                            }
+                        }).catch(()=>{
+                            this.loading = false
+                        })
+                    }
+                })
+            },
+
+            getFormInfo() {
+                axios.post(base_url + '/Syt/getFormInfo').then(res => {
+                    if(res.data.status == 200){
+                        this.skfs_ids = res.data.data.skfs_ids
+                    }
+                });
+            },
+
+            zjysdialogUrl(){
+
+                if (this.form.pay_member_id == '' || this.form.pay_member_id == undefined) {
+                    this.$message.error("请选择缴费客户")
+                    return;
+                }
+
+                this.zjysDialogUrlInfo = {member_id:this.form.pay_member_id}
+                this.dialog.zjysDialogStatus = true
+            },
+
+            ysktzdialogUrl(){
+
+                if (this.form.pay_member_id == '' || this.form.pay_member_id == undefined) {
+                    this.$message.error("请选择缴费客户")
+                    return;
+                }
+
+                this.ysktzDialogUrlInfo = {member_id:this.form.pay_member_id,fylx_id:3}
+                this.dialog.ysktzDialogStatus = true
+            },
+
+            lsystzdialogUrl(){
+
+                if (this.form.pay_member_id == '' || this.form.pay_member_id == undefined) {
+                    this.$message.error("请选择缴费客户")
+                    return;
+                }
+
+                this.lsystzDialogUrlInfo = {member_id:this.form.pay_member_id,fylx_id:4}
+                this.dialog.lsystzDialogStatus = true
+            },
+
+            yajindialogUrl(){
+
+                if (this.form.pay_member_id == '' || this.form.pay_member_id == undefined) {
+                    this.$message.error("请选择缴费客户")
+                    return;
+                }
+
+                this.yajinDialogUrlInfo = {member_id:this.form.pay_member_id}
+                this.dialog.yajinDialogStatus = true
+            },
+
+            skjldialogUrl(){
+
+                if ( typeof (this.searchData.fcxx_id) == 'undefined'
+                    || typeof (this.searchData.cewei_id) == 'undefined'
+                    || typeof (this.searchData.member_id) == 'undefined' ) {
+
+                    this.skjldialogUrlInfo = {
+                        fcxx_id:this.searchData.fcxx_id,
+                        cewei_id:this.searchData.cewei_id,
+                        member_id:this.searchData.member_id
+                    }
+                    this.dialog.skjlDialogStatus = true
+                }
+
+                /*if (this.form.pay_member_id == '' || this.form.pay_member_id == undefined) {
+                    this.$message.error("请选择缴费客户")
+                    return;
+                }*/
+
+                // console.log('skjldialogUrl-fcxx_id',this.searchData.fcxx_id)
+                // console.log('skjldialogUrl-fcxx_id',typeof (this.searchData.fcxx_id) == 'undefined')
+                // console.log('skjldialogUrl-cewei_id',this.searchData.cewei_id)
+                // console.log('skjldialogUrl-member_id',this.searchData.member_id)
+
+            },
+
+            ceweiFy(){
+
+                if (this.form.pay_member_id == '' || this.form.pay_member_id == undefined) {
+                    this.$message.error("请选择缴费客户")
+                    return;
+                }
+
+                this.ceweiFyInfo = {member_id:this.form.pay_member_id}
+                this.dialog.ceweiFyStatus = true
+            },
+
+            ceweiFyLists(){
+
+                if (this.form.pay_member_id == '' || this.form.pay_member_id == undefined) {
+                    this.$message.error("请选择缴费客户")
+                    return;
+                }
+
+                this.ceweiFyListsInfo = {member_id:this.form.pay_member_id}
+                this.dialog.ceweiFyListsStatus = true
+            },
+
+            scys(){
+
+                if (this.form.pay_member_id == '' || this.form.pay_member_id == undefined) {
+                    this.$message.error("请选择缴费客户")
+                    return;
+                }
+
+                this.scysInfo = {member_id:this.form.pay_member_id}
+                this.dialog.scysStatus = true
+            },
+
+            cbpc(){
+                this.cbpcInfo = {member_id:this.form.pay_member_id}
+                this.dialog.cbpcStatus = true
+            },
+
+            printTzd() {
+
+                if (this.form.pay_member_id == '' || this.form.pay_member_id == undefined) {
+                    this.$message.error("请选择缴费客户")
+                    return;
+                }
+
+                axios.post(base_url + '/Syt/getPjys?pjlx_id=2').then(res => {
+
+                    let data = {
+                        funame:'printIndexTzd',
+                        member_id:this.form.pay_member_id,
+                        ids:this.form.yssj_ids,
+                        pjlx_id:2,
+                        print_ys:res.data.data.print_ys
+                    }
+                    this.printdialogUrlInfo = data
+                    this.dialog.printDialogStatus = true
+                })
+            },
+
+            clearFun() {
+                this.$delete(this.searchData,'fcxx_id')
+                this.$delete(this.searchData,'cewei_id')
+                this.$delete(this.searchData,'member_id')
+
+                this.$delete(this.form)
+                this.$delete(this.id_arr,[])
+                this.$delete(this.ysje_arr,[])
+                this.$delete(this.checkedFylxs,[])
+
+                this.form.skfs_id = ''
+                this.form.syt_skje = ''
+                this.form.old_syt_ysje = ''
+                this.form.syt_bz = ''
+                this.form.yssj_ids = ''
+                this.form.pay_member_id = ''
+                this.form.syt_yskcd = 2
+                this.form.syt_dcje = 0
+                this.syt_yskcd_disable = true
+
+                this.$refs.menu.setCheckedKeys([]);
+                this.$refs.menuc.setCheckedKeys([]);
+            }
+        },
+        mounted(){
+            this.index();
+            this.getFormInfo();
+			///////////爽加///////////////////////
+            this.getRoleAccessFcxx();
+            this.getRoleAccessCewei();
+            this.remoteFybzidList();
+			//////////爽加///////////////////////
+        },
+    })
+</script>
+<style>
+    .el-row >>> .el-dropdown-menu {
+        top: 153px !important;
+    }
+</style>
+{/block}

@@ -1,0 +1,304 @@
+{extend name='common/container'}
+{block name="content"}
+<div style="margin:0 15px 15px 15px;">
+<el-row :gutter="10">
+<el-col :span="4" class="hidden-sm-and-down">
+	<left-tree :treelist="treeList" :search_data.sync="searchData" fieldname="zclb_fid" @refesh_list="index"></left-tree>
+</el-col>
+<el-col :xs="24" :sm="24" :md="20" :lg="20">
+<el-card shadow="never" style="min-height:650px;">
+<div v-if="search_visible" id="search" class="search">
+	<el-form ref="form" size="small" :model="searchData" inline>
+		<el-form-item label="资产名称">
+			<el-input id="zcml_name" v-model="searchData.zcml_name"  style="width:150px;" placeholder="请输入资产名称"></el-input>
+		</el-form-item>
+		<el-form-item label="资产编码">
+			<el-input id="zcml_bm" v-model="searchData.zcml_bm"  style="width:150px;" placeholder="请输入资产编码"></el-input>
+		</el-form-item>
+		<el-form-item label="资产性质">
+			<el-select style="width:150px" v-model="searchData.zcml_type" filterable clearable placeholder="请选择">
+				<el-option key="0" label="低值易耗" value="1"></el-option>
+				<el-option key="1" label="固定资产" value="2"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="资产介绍">
+			<el-input id="zcml_neirong" v-model="searchData.zcml_neirong"  style="width:150px;" placeholder="请输入资产介绍"></el-input>
+		</el-form-item>
+		<el-form-item label="资产所属">
+			<el-select @change="selectZclb_id"  style="width:150px" v-model="searchData.zclb_fid" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in zclb_fid" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="所属分类">
+			<el-select   style="width:150px" v-model="searchData.zclb_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in zclb_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<search-tool :search_data.sync="searchData" @refesh_list="index"></search-tool>
+	</el-form>
+</div>
+<div class="btn-group" style="margin-top:10px;margin-bottom:10px;">
+	<div>
+		<el-button v-for="item in button_group" :key="item.access" v-if="checkPermission(item.access,'{:implode(',',session('shop.access'))}','{:session('shop.role_id')}',[1])" :disabled="$data[item.disabled]" :type="item.color" size="mini" :icon="item.icon" @click="fn(item.clickname)">
+			<span v-if="item.batch" v-text="$data['batchUpdateStatus']?'批量保存':'批量编辑'"></span>
+			<span v-else v-text="item.name"></span>
+		</el-button>
+	</div>
+	<div><table-tool :search_visible.sync="search_visible"   @refesh_list="index"></table-tool></div>
+</div>
+<el-table :row-class-name="rowClass" @selection-change="selection"  @row-click="handleRowClick"  row-key="zcml_id"  :header-cell-style="{ background: '#eef1f6', color: '#606266' }" @sort-change='sortChange' v-loading="loading"  ref="multipleTable" border class="eltable" :data="list"  style="width: 100%">
+	<el-table-column align="center" type="selection" width="42"></el-table-column>
+	<el-table-column align="center" type = '' property="zcml_id"  label="编号"  width="70">
+	</el-table-column>
+	<el-table-column align="center"  property="zcml_name"  label="资产名称" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="zcml_bm"  label="资产编码" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="zcml_type"  label="资产性质" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<el-tag type="info" v-if="scope.row.zcml_type == '1'" size="mini" effect="dark">低值易耗</el-tag>
+			<el-tag type="success" v-if="scope.row.zcml_type == '2'" size="mini" effect="dark">固定资产</el-tag>
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="zcml_time"  label="添加时间" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			{{parseTime(scope.row.zcml_time)}}
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="zcml_pic"  label="资产照片" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<div v-if="scope.row.zcml_pic && scope.row.zcml_pic.indexOf('[{') != -1" class="demo-image__preview">
+				<el-image style="margin-right:5px" v-for="(item,i) in JSON.parse(scope.row.zcml_pic)"  class="table_list_pic" :src="item.url" :key="i"  :preview-src-list="[item.url]"></el-image>
+			</div>
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="zcml_fj"  label="资产附件" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<div v-if="scope.row.zcml_fj && scope.row.zcml_fj.indexOf('[{') != -1">
+				<el-link style="margin-right:5px; font-size:13px" v-for="(item,i) in JSON.parse(scope.row.zcml_fj)" target="_blank" :href="item.url"  :key="i">下载附件{{i+1}}</el-link>
+			</div>
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="zclb_fid"  label="资产所属" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="zclb_id"  label="所属分类" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column :fixed="ismobile()?false:'right'" label="操作" align="center" width="190">
+		<template slot-scope="scope">
+			<div v-if="scope.row.zcml_id">
+				<el-button v-if="checkPermission('/shop/Zcml/update.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-edit" type="primary" @click="update(scope.row)" >修改</el-button>
+				<el-button v-if="checkPermission('/shop/Zcml/delete.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-delete" type="danger" @click="del(scope.row)" >删除</el-button>
+			</div>
+		</template>
+	</el-table-column>
+</el-table>
+<Page :total="page_data.total" :page.sync="page_data.page" :limit.sync="page_data.limit" @pagination="index" />
+</el-card>
+</el-col>
+</el-row>
+
+<!--添加-->
+<Add :show.sync="dialog.addDialogStatus" size="small" @refesh_list="index"></Add>
+<!--修改-->
+<Update :info="updateInfo" :show.sync="dialog.updateDialogStatus" size="small" @refesh_list="index"></Update>
+<!--查看详情-->
+<Detail :info="detailInfo" :show.sync="dialog.detailDialogStatus" size="small" @refesh_list="index"></Detail>
+<!--导出弹窗-->
+<el-dialog title="导出进度条" :visible="dumpshow" :before-close="closedialog" width="500px">
+	<el-progress :percentage="percentage"></el-progress>
+</el-dialog>
+
+</div>
+
+{/block}
+{block name="script"}
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script src="__PUBLIC__/assets/libs/vuedragable/Sortable.min.js"></script>
+<script src="__PUBLIC__/assets/libs/vuedragable/vuedraggable.umd.min.js"></script>
+<script src="__PUBLIC__/components/shop/zcml/add.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/zcml/update.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/zcml/detail.js?v=<?php echo rand(1000,9999)?>"></script>
+<script>
+new Vue({
+	el: '#app',
+	components:{
+		'draggable':window.vuedraggable,
+	},
+	data: function() {
+		return {
+			dialog: {
+				addDialogStatus : false,
+				updateDialogStatus : false,
+				detailDialogStatus : false,
+			},
+			searchData:{},
+			button_group:[
+				{name:'添加',color:'success',access:'/shop/Zcml/add.html',icon:'el-icon-plus',disabled:'',clickname:'add'},
+				{name:'修改',color:'primary',access:'/shop/Zcml/update.html',icon:'el-icon-edit',disabled:'single',clickname:'update'},
+				{name:'删除',color:'danger',access:'/shop/Zcml/delete.html',icon:'el-icon-delete',disabled:'multiple',clickname:'del'},
+				{name:'导出',color:'warning',access:'/shop/Zcml/dumpdata.html',icon:'el-icon-download',disabled:'',clickname:'dumpdata'},
+				{name:'查看详情',color:'info',access:'/shop/Zcml/detail.html',icon:'el-icon-view',disabled:'single',clickname:'detail'},
+			],
+			loading: false,
+			page_data: {
+				limit: 20,
+				page: 1,
+				total:20,
+			},
+			order:'',
+			sort:'',
+			ids: [],
+			single:true,
+			multiple:true,
+			search_visible:false,
+			list: [],
+			treeList:[],
+			zclb_fid: [],
+			zclb_id: [],
+			updateInfo:{},
+			detailInfo:{},
+			exceldata:[],
+			dumppage:1,
+			ws:{},
+			dumpshow:false,
+			percentage:0,
+			filename:'',
+		}
+	},
+	methods:{
+		index(){
+			let param = {limit:this.page_data.limit,page:this.page_data.page,order:this.order,sort:this.sort}
+			Object.assign(param, this.searchData,this.urlobj)
+			this.loading = true
+			axios.post(base_url + '/Zcml/index',param).then(res => {
+				if(res.data.status == 200){
+					this.list = res.data.data.data
+					this.page_data.total = res.data.data.total
+					this.loading = false
+					if(this.page_data.page == 1){
+						this.treeList = res.data.sql_field_data.zclb_fids
+						this.zclb_fid = res.data.sql_field_data.zclb_fids
+					}
+				}else{
+					this.$message.error(res.data.msg);
+				}
+			})
+		},
+		updateExt(row,field){
+			if(row.zcml_id){
+				axios.post(base_url + '/Zcml/updateExt',{zcml_id:row.zcml_id,[field]:row[field]}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}
+		},
+		add(){
+			this.dialog.addDialogStatus = true
+		},
+		update(row){
+			let id = row.zcml_id ? row.zcml_id : this.ids.join(',')
+			axios.post(base_url + '/Zcml/getUpdateInfo',{zcml_id:id}).then(res => {
+				if(res.data.status == 200){
+					this.dialog.updateDialogStatus = true
+					this.updateInfo = res.data.data
+				}else{
+					this.$message.error(res.data.msg)
+				}
+			})
+		},
+		del(row){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				let ids = row.zcml_id ? row.zcml_id : this.ids.join(',')
+				axios.post(base_url + '/Zcml/delete',{zcml_id:ids}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+						this.index()
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}).catch(() => {})
+		},
+		dumpdata(){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				this.dumpshow = true
+				this.confirmdumpdata()
+			}).catch(() => {})
+		},
+		confirmdumpdata(){
+			let query = {page:this.dumppage,order:this.order,sort:this.sort}
+			Object.assign(query, this.searchData,{zcml_id:this.ids.join(',')},this.urlobj)
+			axios.post(base_url + '/Zcml/dumpdata',query).then(res => {
+				if(res.data.state == 'ok'){
+					this.percentage = res.data.percentage
+					this.dumppage = this.dumppage + 1
+					this.confirmdumpdata()
+				}else{
+					this.dumpshow = false
+					this.dumppage = 1
+					location.href = base_url + '/Zcml/dumpdata?state=ok&'+param(query)
+				}
+			})
+		},
+		closedialog(){
+			this.dumpshow = false
+		},
+		detail(row){
+			this.dialog.detailDialogStatus = true
+			this.detailInfo = {zcml_id:row.zcml_id ? row.zcml_id : this.ids.join(',')}
+		},
+		selection(selection) {
+			this.ids = selection.map(item => item.zcml_id)
+			this.single = selection.length != 1
+			this.multiple = !selection.length
+		},
+		handleRowClick(row, rowIndex,event){
+			if(event.target.className !== 'el-input__inner'){
+				this.$refs.multipleTable.toggleRowSelection(row)
+			}
+		},
+		rowClass ({ row, rowIndex }) {
+			for(let i=0;i<this.ids.length;i++) {
+				if (row.zcml_id === this.ids[i]) {
+					return 'rowLight'
+				}
+			}
+		},
+		sortChange(val){
+			if(val.order == 'descending'){
+				this.order= 'desc'
+			}
+			if(val.order == 'ascending'){
+				this.order= 'asc'
+			}
+			this.sort = val.prop
+			this.index()
+		},
+		selectZclb_id(val){
+			axios.post(base_url + '/Zcml/getZclb_id',{zclb_fid:val}).then(res => {
+				if(res.data.status == 200){
+					this.zclb_id = res.data.data
+				}
+			})
+		},
+		fn(method){
+			this[method](this.ids)
+		},
+	},
+	mounted(){
+		this.index()
+	},
+})
+</script>
+{/block}

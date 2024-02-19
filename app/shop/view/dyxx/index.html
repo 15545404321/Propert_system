@@ -1,0 +1,208 @@
+{extend name='common/container'}
+{block name="content"}
+<div style="margin:0 15px 15px 15px;">
+<el-card shadow="never" style="min-height:650px;">
+<div v-if="dialog.showlist">
+<div v-if="search_visible" id="search" class="search">
+	<el-form ref="form" size="small" :model="searchData" inline>
+		<el-form-item label="楼宇">
+			<treeselect style="width:150px" :default-expand-level="2" v-model="searchData.louyu_pid" :options="louyu_pid" :normalizer="normalizer" :show-count="true" placeholder="请选择楼宇单元"/>
+		</el-form-item>
+		<search-tool :search_data.sync="searchData" @refesh_list="index"></search-tool>
+	</el-form>
+</div>
+<div class="btn-group" style="margin-top:10px;margin-bottom:10px;">
+	<div>
+		<el-button v-for="item in button_group" :key="item.access" v-if="checkPermission(item.access,'{:implode(',',session('shop.access'))}','{:session('shop.role_id')}',[1])" :disabled="$data[item.disabled]" :type="item.color" size="mini" :icon="item.icon" @click="fn(item.clickname)">
+			<span v-if="item.batch" v-text="$data['batchUpdateStatus']?'批量保存':'批量编辑'"></span>
+			<span v-else v-text="item.name"></span>
+		</el-button>
+	</div>
+	<div><table-tool :search_visible.sync="search_visible"   @refesh_list="index"></table-tool></div>
+</div>
+<el-table :row-class-name="rowClass" @selection-change="selection"  @row-click="handleRowClick"  row-key="louyu_id"  :header-cell-style="{ background: '#eef1f6', color: '#606266' }" @sort-change='sortChange' v-loading="loading"  ref="multipleTable" border class="eltable" :data="list"  style="width: 100%">
+	<el-table-column align="center" type="selection" width="42"></el-table-column>
+	<el-table-column align="left"  property="louyu_name"  label="单元名称" show-overflow-tooltip width="100">
+	</el-table-column>
+	<el-table-column align="center"  property="louyutype_name"  label="楼宇类型" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="louyusx_name"  label="楼房属性" show-overflow-tooltip width="">
+	</el-table-column>
+</el-table>
+<Page :total="page_data.total" :page.sync="page_data.page" :limit.sync="page_data.limit" @pagination="index" />
+</div>
+
+<!--添加楼宇-->
+<Add @changepage="changepage" :show.sync="dialog.addDialogStatus" size="small" @refesh_list="index"></Add>
+<!--修改楼宇-->
+<Update :info="updateInfo" @changepage="changepage" :show.sync="dialog.updateDialogStatus" size="small" @refesh_list="index"></Update>
+<!--追加单元-->
+<Jiady :info="jiaDyInfo" :show.sync="dialog.jiaDyDialogStatus" size="small" @refesh_list="index"></JiaDy>
+<!--追加楼层-->
+<Jialc :info="jiaLcInfo" :show.sync="dialog.jiaLcDialogStatus" size="small" @refesh_list="index"></JiaLc>
+
+</el-card>
+
+</div>
+
+{/block}
+{block name="script"}
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script src="__PUBLIC__/assets/libs/treeselect/vue-treeselect.umd.min.js"></script>
+<link rel="stylesheet" href="__PUBLIC__/assets/libs/treeselect/vue-treeselect.min.css">
+<script src="__PUBLIC__/components/shop/dyxx/add.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/dyxx/update.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/dyxx/jiaDy.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/dyxx/jiaLc.js?v=<?php echo rand(1000,9999)?>"></script>
+<script>
+new Vue({
+	el: '#app',
+	components:{
+		'treeselect':VueTreeselect.Treeselect,
+	},
+	data: function() {
+		return {
+			dialog: {
+				addDialogStatus : false,
+				updateDialogStatus : false,
+				jiaDyDialogStatus : false,
+				jiaLcDialogStatus : false,
+				showlist:true,
+			},
+			searchData:{},
+			button_group:[
+				// {name:'添加楼宇',color:'success',access:'/shop/Dyxx/add.html',icon:'el-icon-plus',disabled:'',clickname:'add'},
+				{name:'修改单元',color:'primary',access:'/shop/Dyxx/update.html',icon:'el-icon-edit',disabled:'single',clickname:'update'},
+				// {name:'删除楼宇',color:'danger',access:'/shop/Dyxx/delete.html',icon:'el-icon-delete',disabled:'multiple',clickname:'del'},
+			],
+			loading: false,
+			page_data: {
+				limit: 100,
+				page: 1,
+				total:20,
+			},
+			order:'',
+			sort:'',
+			ids: [],
+			single:true,
+			multiple:true,
+			search_visible:true,
+			list: [],
+			louyu_pid: [],
+			updateInfo:{},
+			jiaDyInfo:{},
+			jiaLcInfo:{},
+		}
+	},
+	methods:{
+		index(){
+			let param = {limit:this.page_data.limit,page:this.page_data.page,order:this.order,sort:this.sort}
+			Object.assign(param, this.searchData,this.urlobj)
+			this.loading = true
+			axios.post(base_url + '/Dyxx/index',param).then(res => {
+				if(res.data.status == 200){
+					this.list = res.data.data.data
+					this.page_data.total = res.data.data.total
+					this.loading = false
+					if(this.page_data.page == 1){
+						this.louyu_pid = res.data.sql_field_data.louyu_pids
+					}
+				}else{
+					this.$message.error(res.data.msg);
+				}
+			})
+		},
+		add(){
+			this.dialog.addDialogStatus = true
+			this.dialog.showlist = false
+		},
+		update(row){
+			let id = row.louyu_id ? row.louyu_id : this.ids.join(',')
+			axios.post(base_url + '/Dyxx/getUpdateInfo',{louyu_id:id}).then(res => {
+				if(res.data.status == 200){
+					this.dialog.updateDialogStatus = true
+					this.dialog.showlist = false
+					this.updateInfo = res.data.data
+				}else{
+					this.$message.error(res.data.msg)
+				}
+			})
+		},
+		jiaDy(row){
+			this.dialog.jiaDyDialogStatus = true
+			this.jiaDyInfo = {louyu_id:row.louyu_id ? row.louyu_id : this.ids.join(',')}
+		},
+		jiaLc(row){
+			this.dialog.jiaLcDialogStatus = true
+			this.jiaLcInfo = {louyu_id:row.louyu_id ? row.louyu_id : this.ids.join(',')}
+		},
+		del(row){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				let ids = row.louyu_id ? row.louyu_id : this.ids.join(',')
+				axios.post(base_url + '/Dyxx/delete',{louyu_id:ids}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+						this.index()
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}).catch(() => {})
+		},
+		selection(selection) {
+			this.ids = selection.map(item => item.louyu_id)
+			this.single = selection.length != 1
+			this.multiple = !selection.length
+		},
+		handleRowClick(row, rowIndex,event){
+			if(event.target.className !== 'el-input__inner'){
+				this.$refs.multipleTable.toggleRowSelection(row)
+			}
+		},
+		rowClass ({ row, rowIndex }) {
+			for(let i=0;i<this.ids.length;i++) {
+				if (row.louyu_id === this.ids[i]) {
+					return 'rowLight'
+				}
+			}
+		},
+		sortChange(val){
+			if(val.order == 'descending'){
+				this.order= 'desc'
+			}
+			if(val.order == 'ascending'){
+				this.order= 'asc'
+			}
+			this.sort = val.prop
+			this.index()
+		},
+		/** 转换菜单数据结构 */
+		normalizer(node) {
+			if (node.children && !node.children.length) {
+				delete node.children
+			}
+			return {
+				id: node.val,
+				label: node.key,
+				children: node.children
+			}
+		},
+		changepage(){
+			this.dialog.showlist = true
+			this.dialog.addDialogStatus = false
+			this.dialog.updateDialogStatus = false
+		},
+		fn(method){
+			this[method](this.ids)
+		},
+	},
+	mounted(){
+		this.index()
+	},
+})
+</script>
+{/block}

@@ -1,0 +1,277 @@
+{extend name='common/container'}
+{block name="content"}
+<div style="margin:0 15px 15px 15px;">
+<el-card shadow="never" style="min-height:650px;">
+<div v-if="search_visible" id="search" class="search">
+	<el-form ref="form" size="small" :model="searchData" inline>
+		<el-form-item label="原始房主">
+			<el-select @change="selectFcxx_id" remote :remote-method="remoteMemberidList"  style="width:150px" v-model="searchData.member_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in member_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="新任房主">
+			<el-select  remote :remote-method="remoteMemberidbList"  style="width:150px" v-model="searchData.member_idb" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in member_idb" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<!--<el-form-item label="新任房主">
+			<el-input id="member_nameb" v-model="searchData.member_nameb"  style="width:150px;" placeholder="请输入新任房主"></el-input>
+		</el-form-item>-->
+		<el-form-item label="费用结算">
+			<el-select style="width:150px" v-model="searchData.ghjl_jiesuan" filterable clearable placeholder="请选择">
+				<el-option key="0" label="原房主" value="1"></el-option>
+				<el-option key="1" label="新房主" value="2"></el-option>
+			</el-select>
+		</el-form-item>
+
+		<el-form-item label="过户住宅">
+			<el-select  remote :remote-method="remoteFcxxidList"  style="width:150px" v-model="searchData.fcxx_id" filterable clearable placeholder="请选择搜索">
+				<el-option v-for="(item,i) in fcxx_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+
+		<el-form-item label="车位信息">
+			<el-select  remote :remote-method="remoteCeweidList"  style="width:150px" v-model="searchData.cewei_id" filterable clearable placeholder="请选择搜索">
+				<el-option v-for="(item,i) in cewei_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<!--<el-form-item label="过户住宅">
+			<treeselect style="width:150px" :default-expand-level="2" v-model="searchData.fcxx_id" :options="fcxx_id" :normalizer="normalizer" :show-count="true" placeholder="请选择过户住宅"/>
+		</el-form-item>
+		<el-form-item label="车位信息">
+			<treeselect style="width:150px" :default-expand-level="2" v-model="searchData.cewei_id" :options="cewei_id" :normalizer="normalizer" :show-count="true" placeholder="请选择车位信息"/>
+		</el-form-item>-->
+		<el-form-item label="回退状态">
+			<el-select style="width:150px" v-model="searchData.gh_tui" filterable clearable placeholder="请选择">
+				<el-option key="0" label="否" value="1"></el-option>
+				<el-option key="1" label="是" value="2"></el-option>
+			</el-select>
+		</el-form-item>
+		<search-tool :search_data.sync="searchData" @refesh_list="index"></search-tool>
+	</el-form>
+</div>
+<div class="btn-group" style="margin-top:10px;margin-bottom:10px;">
+	<div>
+		<el-button v-for="item in button_group" :key="item.access" v-if="checkPermission(item.access,'{:implode(',',session('shop.access'))}','{:session('shop.role_id')}',[1])" :disabled="$data[item.disabled]" :type="item.color" size="mini" :icon="item.icon" @click="fn(item.clickname)">
+			<span v-if="item.batch" v-text="$data['batchUpdateStatus']?'批量保存':'批量编辑'"></span>
+			<span v-else v-text="item.name"></span>
+		</el-button>
+	</div>
+	<div><table-tool :search_visible.sync="search_visible"   @refesh_list="index"></table-tool></div>
+</div>
+<el-table :row-class-name="rowClass" @selection-change="selection"  @row-click="handleRowClick"  row-key="ghjl_id"  :header-cell-style="{ background: '#eef1f6', color: '#606266' }" @sort-change='sortChange' v-loading="loading"  ref="multipleTable" border class="eltable" :data="list"  style="width: 100%">
+	<el-table-column align="center" type="selection" width="42"></el-table-column>
+	<el-table-column align="center" type = '' property="ghjl_id"  label="编号"  width="70">
+	</el-table-column>
+	<el-table-column align="center"  property="member_namea"  label="原始房主" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="member_nameb"  label="新任房主" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="ghjl_time"  label="过户时间" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			{{parseTime(scope.row.ghjl_time)}}
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="ghjl_jiesuan"  label="费用结算" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<el-tag type="success" v-if="scope.row.ghjl_jiesuan == '1'" size="mini" effect="dark">原房主</el-tag>
+			<el-tag type="primary" v-if="scope.row.ghjl_jiesuan == '2'" size="mini" effect="dark">新房主</el-tag>
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="fcxx_fjbh"  label="房间编号" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="cewei_name"  label="车位名称" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="gh_tui"  label="回退状态" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<el-tag type="success" v-if="scope.row.gh_tui == '1'" size="mini" effect="dark">否</el-tag>
+			<el-tag type="danger" v-if="scope.row.gh_tui == '2'" size="mini" effect="dark">是</el-tag>
+		</template>
+	</el-table-column>
+	<el-table-column :fixed="ismobile()?false:'right'" label="操作" align="center" width="190">
+		<template slot-scope="scope">
+			<div v-if="scope.row.ghjl_id">
+				<el-button v-if="scope.row.gh_tui == 1 && checkPermission('/shop/Ghjl/tuihui.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-edit" type="primary" @click="tuihui(scope.row)" >过户回退</el-button>
+			</div>
+		</template>
+	</el-table-column>
+</el-table>
+<Page :total="page_data.total" :page.sync="page_data.page" :limit.sync="page_data.limit" @pagination="index" />
+</el-card>
+
+<!--添加记录-->
+<Add :show.sync="dialog.addDialogStatus" size="small" @refesh_list="index"></Add>
+<!--过户回退-->
+<Tuihui :info="tuihuiInfo" :show.sync="dialog.tuihuiDialogStatus" size="small" @refesh_list="index"></Tuihui>
+
+</div>
+
+{/block}
+{block name="script"}
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script src="__PUBLIC__/assets/libs/treeselect/vue-treeselect.umd.min.js"></script>
+<link rel="stylesheet" href="__PUBLIC__/assets/libs/treeselect/vue-treeselect.min.css">
+<script src="__PUBLIC__/components/shop/ghjl/add.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/ghjl/tuihui.js?v=<?php echo rand(1000,9999)?>"></script>
+<script>
+new Vue({
+	el: '#app',
+	components:{
+		'treeselect':VueTreeselect.Treeselect,
+	},
+	data: function() {
+		return {
+			dialog: {
+				addDialogStatus : false,
+				tuihuiDialogStatus : false,
+			},
+			searchData:{},
+			button_group:[
+				{name:'添加记录',color:'success',access:'/shop/Ghjl/add.html',icon:'el-icon-plus',disabled:'',clickname:'add'},
+			],
+			loading: false,
+			page_data: {
+				limit: 20,
+				page: 1,
+				total:20,
+			},
+			order:'',
+			sort:'',
+			ids: [],
+			single:true,
+			multiple:true,
+			search_visible:false,
+			list: [],
+			fcxx_id: [],
+			cewei_id: [],
+			member_id: [],
+			member_idb: [],
+			tuihuiInfo:{},
+		}
+	},
+	methods:{
+		remoteFcxxidList(val){
+			axios.post(base_url + '/Ghjl/remoteFcxxidList',{queryString:val}).then(res => {
+				if(res.data.status == 200){
+					this.fcxx_id = res.data.data
+				}
+			})
+		},
+		remoteCeweidList(val){
+			axios.post(base_url + '/Ghjl/remoteCeweidList',{queryString:val}).then(res => {
+				if(res.data.status == 200){
+					this.cewei_id = res.data.data
+				}
+			})
+		},
+		remoteMemberidList(val){
+			axios.post(base_url + '/Ghjl/remoteMemberidList',{queryString:val}).then(res => {
+				if(res.data.status == 200){
+					this.member_id = res.data.data
+				}
+			})
+		},
+		remoteMemberidbList(val){
+			axios.post(base_url + '/Ghjl/remoteMemberidbList',{queryString:val}).then(res => {
+				if(res.data.status == 200){
+					this.member_idb = res.data.data
+				}
+			})
+		},
+		index(){
+			let param = {limit:this.page_data.limit,page:this.page_data.page,order:this.order,sort:this.sort}
+			Object.assign(param, this.searchData,this.urlobj)
+			this.loading = true
+			axios.post(base_url + '/Ghjl/index',param).then(res => {
+				if(res.data.status == 200){
+					this.list = res.data.data.data
+					this.page_data.total = res.data.data.total
+					this.loading = false
+					if(this.page_data.page == 1){
+						// this.cewei_id = res.data.sql_field_data.cewei_ids
+					}
+				}else{
+					this.$message.error(res.data.msg);
+				}
+			})
+		},
+		updateExt(row,field){
+			if(row.ghjl_id){
+				axios.post(base_url + '/Ghjl/updateExt',{ghjl_id:row.ghjl_id,[field]:row[field]}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}
+		},
+		add(){
+			this.dialog.addDialogStatus = true
+		},
+		tuihui(row){
+			let id = row.ghjl_id ? row.ghjl_id : this.ids.join(',')
+			axios.post(base_url + '/Ghjl/getTuihuiInfo',{ghjl_id:id}).then(res => {
+				if(res.data.status == 200){
+					this.dialog.tuihuiDialogStatus = true
+					this.tuihuiInfo = res.data.data
+				}else{
+					this.$message.error(res.data.msg)
+				}
+			})
+		},
+		selection(selection) {
+			this.ids = selection.map(item => item.ghjl_id)
+			this.single = selection.length != 1
+			this.multiple = !selection.length
+		},
+		handleRowClick(row, rowIndex,event){
+			if(event.target.className !== 'el-input__inner'){
+				this.$refs.multipleTable.toggleRowSelection(row)
+			}
+		},
+		rowClass ({ row, rowIndex }) {
+			for(let i=0;i<this.ids.length;i++) {
+				if (row.ghjl_id === this.ids[i]) {
+					return 'rowLight'
+				}
+			}
+		},
+		sortChange(val){
+			if(val.order == 'descending'){
+				this.order= 'desc'
+			}
+			if(val.order == 'ascending'){
+				this.order= 'asc'
+			}
+			this.sort = val.prop
+			this.index()
+		},
+		/** 转换菜单数据结构 */
+		normalizer(node) {
+			if (node.children && !node.children.length) {
+				delete node.children
+			}
+			return {
+				id: node.val,
+				label: node.key,
+				children: node.children
+			}
+		},
+		selectFcxx_id(val){
+			axios.post(base_url + '/Ghjl/getFcxx_id',{member_id:val}).then(res => {
+				if(res.data.status == 200){
+					this.fcxx_id = res.data.data
+				}
+			})
+		},
+		fn(method){
+			this[method](this.ids)
+		},
+	},
+	mounted(){
+		this.index()
+	},
+})
+</script>
+{/block}

@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<!-- <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script> -->
+<!--	<script src="echarts.js"></script>-->
+	<script src="/assets/js/echarts.js"></script>
+	<script src="https://s1.pstatp.com/cdn/expire-1-M/jquery/1.10.2/jquery.min.js"></script>
+	<title>大数据看板</title>
+	<style>
+		* {
+			margin: 0;
+			padding: 0;
+		}
+
+		html,
+		body {
+			width: 100%;
+			height: 100%;
+			background: #22284a;
+			min-width: 1800px;
+		}
+
+		/* 头部 */
+		header {
+			width: 100%;
+			height: 73px;
+			background: url('/img/header.png') no-repeat;
+			background-size: 100% auto;
+		}
+
+		header .title {
+			text-align: center;
+			color: #36bfff;
+			font-size: 40px;
+			padding: 10px 0 0 0;
+		}
+
+		header #timer {
+			color: #fff;
+			text-align: right;
+			font-size: 20px;
+			margin-right: 80px;
+			margin-top: -2px;
+		}
+
+		.top {
+			display: flex;
+		}
+
+		/* 左侧第一块 */
+		.leftOne {
+			background: #181c41;
+			color: #fff;
+			padding: 15px;
+			margin: 0 0 0 10px;
+			border-radius: 10px 0 0 10px;
+			/* width: 800px; */
+		}
+
+		.leftOneTitle {
+			color: #03c2e1;
+			font-size: 20px;
+			font-weight: 800;
+		}
+
+		.leftOneSubheading {
+			font-size: 16px;
+			margin-top: 25px;
+		}
+
+		.fiveBOX {
+			margin-top: 20px;
+			display: flex;
+			align-items: center;
+		}
+
+		.ptr {
+			padding: 10px 80px 0 0;
+		}
+
+		.ptr:nth-last-child(1) {
+			padding-right: 0;
+		}
+
+		.fiveBOX .details {
+			width: 100%;
+			line-height: 34px;
+			background: #22284a;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			margin-top: 10px;
+		}
+
+		.fiveBOX .details p {
+			margin-left: 10px;
+		}
+
+		.fiveBOX .block {
+			display: flex;
+			align-items: center;
+			margin-right: 30px;
+		}
+
+		.fiveBOX .block img {
+			width: 60px;
+			height: 60px;
+			border-radius: 10px;
+			margin-right: 10px;
+			margin-left: 5px;
+		}
+
+		.fiveBOX .block .num {
+			font-size: 15px;
+			margin-bottom: 5px;
+		}
+
+		.fiveBOX .block .number {
+			font-size: 20px;
+			color: #00a8fe;
+			font-weight: 600;
+		}
+
+		.leftTwo {
+			background: #181c41;
+			color: #fff;
+			padding: 15px;
+			margin: 0 10px 0 0;
+			border-radius: 0 10px 10px 0;
+			flex: 1;
+		}
+
+		.leftTwo .leftTwoBox {
+			display: flex;
+			justify-content: space-around;
+			align-items: center;
+		}
+
+		.leftTwo .rev {
+			position: relative;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			margin-top: 25px;
+		}
+
+		.leftTwo .rev .revName {
+			font-weight: 800;
+		}
+
+		.leftTwo .yuan {
+			width: 100px;
+			height: 100px;
+			border-radius: 50%;
+			background: none;
+			border: 5px solid rgba(255, 255, 255, 0.3);
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			margin-bottom: 10px;
+		}
+
+		.rev:nth-of-type(1) .yuanA {
+			width: 100px;
+			height: 100px;
+			border-radius: 50%;
+			background: none;
+			border-width: 5px;
+			border-style: dotted;
+			border-color: #26a9fd;
+			position: absolute;
+			clip: rect(0px 110px 110px {$cewei_clip_num}px);
+			top: 0;
+		}
+
+		.rev:nth-of-type(2) .yuanA {
+			width: 100px;
+			height: 100px;
+			border-radius: 50%;
+			background: none;
+			border-width: 5px;
+			border-style: dotted;
+			border-color: #862cdf;
+			position: absolute;
+			clip: rect(0px 110px 110px {$shoufei_clip_num}px);
+			top: 0;
+		}
+
+		.rev:nth-of-type(3) .yuanA {
+			width: 100px;
+			height: 100px;
+			border-radius: 50%;
+			background: none;
+			border-width: 5px;
+			border-style: dotted;
+			border-color: #f15067;
+			position: absolute;
+			clip: rect(0px 110px 110px {$qingqian_clip_num}px);
+			top: 0;
+		}
+
+		.leftTwo .bottoms {
+			display: flex;
+			justify-content: space-between;
+			margin: 0 65px;
+		}
+
+		.leftTwo .bottoms .bottomText p:nth-of-type(1) {
+			color: #33daff;
+			margin: 5px 0;
+		}
+
+		/* 下面内容 */
+		.leftBottom {
+			margin-top: 20px;
+			display: flex;
+		}
+
+		.leftBottomLeft {
+			margin: 10px;
+			background: #181c41;
+			color: #fff;
+			padding: 15px;
+			margin: 0 10px;
+			border-radius: 10px;
+		}
+
+		.leftBottomRight {
+			flex: 1;
+			margin: 0 10px;
+			background: #181c41;
+			color: #fff;
+			padding: 15px;
+			border-radius: 10px;
+		}
+
+		.contentNotice {
+			margin-top: 20px;
+			width: 100%;
+			height: 54px;
+			background: rgba(255, 255, 255, 0.9);
+			border-radius: 2px;
+		}
+
+		.contentNotice ul {
+			width: 100%;
+			height: 54px;
+		}
+
+		.contentNotice ul:nth-child(1) li {
+			float: left;
+		}
+
+		.contentNotice ul li:nth-child(1) img {
+			width: 106px;
+			height: 42px;
+			margin: 6px 16px 6px 6px;
+		}
+
+		.contentNotice ul li:nth-child(2) {
+			width: 900px;
+			height: 54px;
+			font-size: 18px;
+			line-height: 54px;
+			color: #333333;
+		}
+
+		.contentNotice ul li:nth-child(2) span {
+			display: inline-block;
+			margin-right: 10px;
+		}
+
+		.contentNotice ul li:nth-child(3) {
+			float: right;
+			margin-right: 15px;
+			margin-top: 15px;
+			width: 44px;
+			height: 24px;
+			border-radius: 12px;
+			border: 1px solid #CCCCCC;
+			font-size: 12px;
+			line-height: 24px;
+			padding-left: 12px;
+			color: #333333;
+		}
+
+		.contentNotice ul li:nth-child(3):hover {
+			border: 1px solid #0F468D;
+			color: #0F468D;
+		}
+
+		.contentNotice ul li:nth-child(3):hover .noticeMore {
+			content: url(../img/morehover.png);
+		}
+
+		/* 新添加的轮播效果 */
+		.scrollDiv {
+			width: 900px;
+			height: 54px;
+			overflow: hidden;
+		}
+
+		.contentNotice_loop a {
+			color: #333333;
+		}
+
+		.contentNotice_loop {
+			line-height: 54px;
+			width: 900px;
+			height: 54px;
+		}
+
+		.contentNotice_loop li {
+			width: 100%;
+		}
+
+		/*滚动条样式*/
+		body::-webkit-scrollbar {
+			width: 4px;
+		}
+
+		body::-webkit-scrollbar-thumb {
+			border-radius: 10px;
+			box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+			background: rgba(0, 0, 0, 0.2);
+		}
+
+		body::-webkit-scrollbar-track {
+			box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+			border-radius: 0;
+			background: rgba(0, 0, 0, 0.1);
+
+		}
+
+		.app {
+			padding: 20px 0 20px 0;
+		}
+	</style>
+</head>
+
+<body>
+<header>
+	<p class="title">{$shop_name}效能分析</p>
+	<!-- <p id="timer"></p> -->
+</header>
+<div class="app">
+	<div class="top">
+		<div class="leftOne">
+			<p class="leftOneTitle">基本信息</p>
+			<p class="leftOneSubheading">{$shop_name} - {$xqgl_name}</p>
+			<div class="fiveBOX">
+				<div class="ptr">
+					<div class="block">
+						<img src="/img/01.png" alt="">
+						<div>
+							<p class="num">楼座数量(个)</p>
+							<p class="number">{$louyu_num}</p>
+						</div>
+					</div>
+					<div class="details">
+						<p>空置率: <span>{$louyu_kzl}%</span></p>
+						<p>总面积: <span>{$louyu_zmj}m²</span></p>
+					</div>
+				</div>
+				<div class="ptr">
+					<div class="block">
+						<img src="/img/02.png" alt="">
+						<div>
+							<p class="num">房间数(个)</p>
+							<p class="number">{$fcxx_num}</p>
+						</div>
+					</div>
+					<div class="details">
+						<p>已入住: <span>{$fcxx_chu}个</span></p>
+						<p>空<span style="opacity: 0;">空</span>置: <span>{$fcxx_kong}个</span></p>
+					</div>
+				</div>
+				<div class="ptr">
+					<div class="block">
+						<img src="/img/04.png" alt="">
+						<div>
+							<p class="num">车位数(个)</p>
+							<p class="number">{$cewei_num}</p>
+						</div>
+					</div>
+					<div class="details">
+						<p>已出售: <span>{$cewei_chu}个</span></p>
+						<p>空<span style="opacity: 0;">空</span>置: <span>{$cewei_kong}个</span></p>
+					</div>
+				</div>
+				<div class="ptr">
+					<div class="block">
+						<img src="/img/03.png" alt="">
+						<div>
+							<p class="num">车辆数(个)</p>
+							<p class="number">{$car_num}</p>
+						</div>
+					</div>
+					<div class="details">
+						<p>固定车辆: <span>{$car_gudi}个</span></p>
+						<p>临时车辆: <span>{$car_linshi}个</span></p>
+					</div>
+				</div>
+				<!--<div class="ptr">
+					<div class="block">
+						<img src="/img/05.png" alt="">
+						<div>
+							<p class="num">认证率(%)</p>
+							<p class="number">{$rzl}%</p>
+						</div>
+					</div>
+					<div class="details">
+						<p>用户认证数: <span>{$member_rzl}个</span></p>
+						<p>房间认证数: <span>{$fcxx_rzl}个</span></p>
+					</div>
+				</div>-->
+			</div>
+		</div>
+
+		<div class="leftTwo">
+			<p class="leftOneTitle" style="opacity: 0;">收费分析(本年)</p>
+			<div class="leftTwoBox">
+				<div class="rev">
+					<div class="yuan">{$cewei_clip}%</div>
+					<p class="yuanA"></p>
+					<p class="revName">车位收费率</p>
+				</div>
+				<div class="rev">
+					<div class="yuan">{$shoufei_clip}%</div>
+					<p class="yuanA"></p>
+					<p class="revName">收费率</p>
+				</div>
+				<div class="rev">
+					<div class="yuan">{$qingqian_clip}%</div>
+					<p class="yuanA"></p>
+					<p class="revName">清欠率</p>
+				</div>
+			</div>
+			<div class="bottoms">
+				<div class="bottomText">
+					<p>当前已收金额: <span>{$cewei_jiaofei}万元</span></p>
+					<p>当前应收金额: <span>{$cewei_daijaio}万元</span></p>
+				</div>
+				<div class="bottomText">
+					<p>陈欠核金额: <span>{$chenqianheje}万元</span></p>
+					<p>陈欠总金额: <span>{$chenqianzongje}万元</span></p>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="leftBottom">
+		<div>
+			<div class="leftBottomLeft">
+				<p class="leftOneTitle">欠费展示</p>
+				<div style="display:flex;">
+					<div id="main1" style="width: 450px;height:250px;"></div>
+					<div id="main2" style="width: 450px;height:250px;"></div>
+				</div>
+			</div>
+			<div class="leftBottomRight" style="margin-top: 20px;">
+				<p class="leftOneTitle">支付方式</p>
+				<div id="main3" style="width: 100%;height:350px;"></div>
+			</div>
+		</div>
+		<div style="flex:1;">
+			<div class="leftBottomRight">
+				<p class="leftOneTitle">物业报修</p>
+				<div id="main4" style="width: 100%;height:250px;"></div>
+			</div>
+
+			<div class="leftBottomRight" style="margin-top: 20px;">
+				<p class="leftOneTitle">公告通知</p>
+				<div id="main5" style="width: 100%;height:350px;"></div>
+			</div>
+
+		</div>
+	</div>
+</div>
+<!-- <div id="main" style="width: 600px;height:400px;"></div> -->
+</body>
+
+</html>
+<script>
+	function timer() {
+		var timestamp = Date.parse(new Date());
+		timestamp = timestamp / 1000;
+		var n = timestamp * 1000;
+		var date = new Date(n);
+		//年
+		var Y = date.getFullYear();
+		//月
+		var M = (date.getMonth() + 1 < 10 ? '0' + (date.getMonth() + 1) : date.getMonth() + 1);
+		//日
+		var D = date.getDate() < 10 ? '0' + date.getDate() : date.getDate();
+		//时
+		var h = date.getHours();
+		//分
+		var m = date.getMinutes();
+		//秒
+		var s = date.getSeconds();
+		return Y + '年' + M + '月' + D + '日'
+	}
+	let time = timer()
+	$('#timer').html(time)
+	var myChart = echarts.init(document.getElementById('main1'));
+	var option1 = {
+		title: {
+			text: '本年',
+			left: 'center',
+			textStyle: {
+				color: "#fff"
+			},
+		},
+		tooltip: {
+			trigger: 'item',
+		},
+		legend: {
+			icon: "circle",
+			itemWidth: 5, // 设置icon宽度
+			itemHeight: 5, // 设置icon高度
+			itemGap: 10, // 设置间距
+			top: '5%', //竖直位置
+			x: 00, //水平位置
+			y: 0, //竖直位置
+			orient: "vertical", //设置显示顺序，默认水平（水平，竖直）
+			textStyle: {
+				color: "#fff"
+			}, //文本样式
+			// 使用回调函数（设置文本显示内容，例如 加百分号）
+			formatter: function (name) {
+				var data = option1.series[0].data;
+				var total = 0;
+				var tarValue;
+				for (var i = 0, l = data.length; i < l; i++) {
+					total += data[i].value;
+					if (data[i].name == name) {
+						tarValue = data[i].value;
+					}
+				}
+
+				if (tarValue == undefined) {
+					tarValue = 0.00
+				}
+				var p = ((tarValue / total) * 100).toFixed(2);
+
+				return name + " " + " " + p + "%";
+			},
+
+		},
+		series: [{
+			name: '',
+			type: 'pie',
+			radius: ['40%', '70%'],
+			labelLine: {
+				normal: {
+					length: 15, // 指示线长度
+					lineStyle: {
+						color: "#595959" // 指示线颜色
+					}
+				},
+			},
+			label: {
+				show: false,
+				position: 'center'
+			},
+			emphasis: {
+				label: {
+					show: true,
+					fontSize: 10,
+					fontWeight: 'bold'
+				}
+			},
+			data: []
+
+		}]
+	}
+	option1.series[0].data = {$main1};
+	myChart.setOption(option1);
+
+
+
+
+	var myChart = echarts.init(document.getElementById('main2'));
+	var option2 = {
+		title: {
+			text: '历年',
+			left: 'center',
+			textStyle: {
+				color: "#fff"
+			},
+		},
+		tooltip: {
+			trigger: 'item',
+		},
+		legend: {
+			icon: "circle",
+			itemWidth: 5, // 设置icon宽度
+			itemHeight: 5, // 设置icon高度
+			itemGap: 10, // 设置间距
+			top: '5%', //竖直位置
+			x: 00, //水平位置
+			y: 0, //竖直位置
+			orient: "vertical", //设置显示顺序，默认水平（水平，竖直）
+			textStyle: {
+				color: "#fff"
+			}, //文本样式
+			// 使用回调函数（设置文本显示内容，例如 加百分号）
+			formatter: function (name) {
+				var data = option1.series[0].data;
+				var total = 0;
+				var tarValue;
+				for (var i = 0, l = data.length; i < l; i++) {
+					total += data[i].value;
+					if (data[i].name == name) {
+						tarValue = data[i].value;
+					}
+				}
+				if (tarValue == undefined) {
+					tarValue = 0.00
+				}
+				var p = ((tarValue / total) * 100).toFixed(2);
+				return name + " " + " " + p + "%";
+			},
+
+		},
+		series: [{
+			name: '',
+			type: 'pie',
+			radius: ['40%', '70%'],
+			labelLine: {
+				normal: {
+					length: 15, // 指示线长度
+					lineStyle: {
+						color: "#595959" // 指示线颜色
+					}
+				},
+			},
+			label: {
+				show: false,
+				position: 'center'
+			},
+			emphasis: {
+				label: {
+					show: true,
+					fontSize: 10,
+					fontWeight: 'bold'
+				}
+			},
+			data: [{ // todo2
+				value: 10,
+				name: '物业费',
+				itemStyle: {
+					color: '#FFBD1C'
+				}
+			},
+				{
+					value: 20,
+					name: '停车费',
+					itemStyle: {
+						color: '#13C2C2'
+					}
+				},
+				{
+					value: 30,
+					name: '垃圾处理费',
+					itemStyle: {
+						color: '#267CFF'
+					}
+				},
+				{
+					value: 40,
+					name: '管理费',
+					itemStyle: {
+						color: '#FF8C16'
+					}
+				},
+			]
+
+		}]
+	}
+	option2.series[0].data = {$main2};
+	myChart.setOption(option2);
+
+
+
+	var myChart = echarts.init(document.getElementById('main3'));
+	option3 = {
+		tooltip: {
+			trigger: 'axis',
+		},
+		legend: {
+			orient: 'vertical',
+			// data: ['支付方式'],
+			right: 'center',
+			top: 15,
+			textStyle: {
+				color: "#fff"
+			}, //文本样式
+		},
+		xAxis: {
+			type: 'category',
+			boundaryGap: false,
+			data: [] // todo
+		},
+		yAxis: {
+			type: 'value',
+			splitLine: {
+				show: true,
+				lineStyle: {
+					type: 'dashed',
+					width: '1',
+					color: '#25cef3'
+				}
+			},
+		},
+		series: [{
+			// name: '支付方式',
+			type: 'line',
+			smooth: true, // 平滑的折线图
+			data: [], // todo3
+			lineStyle: { // 设置线条的style等
+				normal: {
+					color: '#03c2ec',
+				},
+			},
+			itemStyle: {
+				// 设置线条上点的颜色（和图例的颜色）
+				normal: {
+					color: '#fff',
+				},
+			},
+			areaStyle: {
+				color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{
+					offset: 0,
+					// color: 'rgba(1, 132, 312, 0.4)'
+					color: 'rgba(3, 194, 236, 0.4)'
+				},
+					{
+						offset: 0.8,
+						color: 'rgba(3, 194, 236, 0.1)'
+					}
+				])
+			},
+		}, ],
+	};
+	option3.xAxis.data = {$main3.xAxis};
+	option3.series[0].data = {$main3.series};
+	myChart.setOption(option3);
+
+
+	var myChart = echarts.init(document.getElementById('main4'));
+
+	var option4 = {
+		tooltip: {
+			trigger: "axis"
+		},
+		legend: {
+			textStyle: {
+				color: "#fff"
+			}, //文本样式
+		},
+
+		calculable: true,
+		xAxis: [{
+			type: "category",
+			data: [
+				"1月",
+				"2月",
+				"3月",
+				"4月",
+				"5月",
+				"6月",
+				"7月",
+				"8月",
+				"9月",
+				"10月",
+				"11月",
+				"12月"
+			]
+		}],
+		yAxis: [{
+			type: "value",
+			axisLine: {
+				//y轴
+				show: false
+			},
+			axisTick: {
+				//刻度线
+				show: false
+			},
+			splitLine: {
+				show: true,
+				lineStyle: {
+					type: 'dashed',
+					width: '1',
+					color: '#25cef3'
+				}
+			},
+		}],
+		series: [{
+			name: "报修量",
+			type: "bar",
+			//设置柱状图宽度
+			barWidth: "13",
+			data: [],
+			itemStyle: {
+				normal: {
+					//柱形图圆角，顺时针左上，右上，右下，左下）
+					barBorderRadius: [12, 12, 12, 12],
+					//设置柱状图颜色渐变
+					color: new echarts.graphic.LinearGradient(
+							0,
+							0,
+							0,
+							1,
+							[{
+								offset: 0,
+								color: "#f75d5d"
+							},
+								{
+									offset: 1,
+									color: "#f0caca"
+								}
+							]
+					)
+				}
+			}
+		},
+			{
+				name: "处理量",
+				type: "bar",
+				//设置柱状图宽度
+				barWidth: "13",
+				//柱状图间距
+				barGap: "200%",
+				data: [],
+				itemStyle: {
+					normal: {
+						// 统一设置四个角的圆角大小
+						barBorderRadius: 12,
+						//设置柱状图颜色渐变
+						color: new echarts.graphic.LinearGradient(
+								0,
+								0,
+								0,
+								1,
+								[{
+									offset: 0,
+									color: "#5ad9e8"
+								},
+									{
+										offset: 1,
+										color: "#caecf0"
+									}
+								]
+						)
+					}
+				}
+			}
+		]
+	};
+	option4.series[0].data = {$main4.baoxiu};
+	option4.series[1].data = {$main4.chuli};
+	myChart.setOption(option4);
+
+
+
+	var myChart = echarts.init(document.getElementById('main5'));
+	var option5 = {
+		legend: {
+			textStyle: {
+				color: '#fff'
+			}
+		},
+		xAxis: {
+			type: 'category',
+			boundaryGap: false,
+			axisLabel: {
+				color: 'rgba(255,255,255,0.8)'
+			},
+			axisTick: {
+				alignWithLabel: true,
+				lineStyle: {
+					color: 'rgba(255,255,255,0.8)'
+				}
+			},
+			data: [
+				"1月",
+				"2月",
+				"3月",
+				"4月",
+				"5月",
+				"6月",
+				"7月",
+				"8月",
+				"9月",
+				"10月",
+				"11月",
+				"12月"
+			]
+		},
+		yAxis: {
+			type: 'value',
+			axisLabel: {
+				color: 'rgba(255,255,255,0.8)'
+			},
+			splitLine: {
+				lineStyle: {
+					color: '#666'
+				}
+			}
+		},
+		tooltip: {
+			trigger: 'axis'
+		},
+		series: [{
+			name: '公告通知',
+			type: 'line',
+			symbol: 'circle',
+			symbolSize: 12,
+			// 是否显示 symbol, 如果 false 则只有在 tooltip hover 的时候显示
+			showSymbol: false,
+			itemStyle: {
+				color: '#0184d5',
+				borderColor: 'rgba(221, 220, 107, 0.1)',
+				borderWidth: 12
+			},
+			smooth: true,
+			emphasis: {
+				focus: 'series'
+			},
+			areaStyle: {
+				color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{
+					offset: 0,
+					color: 'rgba(1, 132, 312, 0.4)'
+				},
+					{
+						offset: 0.8,
+						color: 'rgba(1, 132, 312, 0.1)'
+					}
+				])
+			},
+			data: [722, 988, 826, 959, 1090, 1264, 987, 907, 856, 1187, 1010, 923]
+		},
+			{
+				name: '报修通知',
+				type: 'line',
+				symbol: 'circle',
+				symbolSize: 12,
+				showSymbol: false,
+				itemStyle: {
+					color: '#00d887',
+					borderColor: 'rgba(221, 220, 107, 0.1)',
+					borderWidth: 12
+				},
+				smooth: true,
+				emphasis: {
+					focus: 'series'
+				},
+				lineStyle: {
+					color: '#00d887',
+					width: 2
+				},
+				areaStyle: {
+					color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{
+						offset: 0,
+						color: 'rgba(0, 216, 135, 0.4)'
+					},
+						{
+							offset: 0.8,
+							color: 'rgba(0, 216, 135, 0.1)'
+						}
+					])
+				},
+				data: [239, 359, 283, 411, 587, 392, 516, 484, 666, 504, 703, 570]
+			}
+		]
+	}
+
+	option5.series[0].data = {$main5.xttz};
+	option5.series[1].data = {$main5.fwtz};
+	myChart.setOption(option5);
+</script>

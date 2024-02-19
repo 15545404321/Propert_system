@@ -1,0 +1,201 @@
+<script src="../../../../public/assets/libs/jquery/jquery.min.js"></script>{extend name='common/container_p'}
+{block name="content"}
+<div>
+	<!--<el-button style="margin-left: 180mm;margin-bottom: 10px;" @click="printTable">打印票据</el-button>-->
+	<el-card shadow="never" style="width: 210mm;" id="printArea">
+
+		<div class="title-name">{{title_name}}</div>
+		<div class="flex-a"><div class="flex-b"> </div></div>
+		<div class="flex-a"><div class="flex-b"> </div></div>
+		<div style="padding-top: 5px;"></div>
+
+		<div style="margin-left: 20px;">
+			<div class="middle-name-a">
+				<div class="middle-name-b1">客户姓名：{{pay_member_name}}</div>
+				<div class="middle-name-b2">单据编号：{{bill_sn}}</div>
+			</div>
+			<div class="middle-name-a">
+				<div class="middle-name-b3">交易编号：{{pay_sn}}</div>
+				<div class="middle-name-b3">收款时间：{{yssj_fksj}}</div>
+				<div class="middle-name-b3">建筑面积：{{yssj_jzmj}}</div>
+			</div>
+		</div>
+
+		<el-table :header-cell-style="{ background: '#eef1f6', color: '#606266'}"
+				  v-loading="loading" ref="multipleTable" border
+				  class="eltable" :data="list" style="font-size: 11px">
+
+			<el-table-column align="center" property="fcxx_fjbh" label="资产编号">
+			</el-table-column>
+
+			<el-table-column align="center" property="yssj_fymc" label="费用名称">
+			</el-table-column>
+
+			<el-table-column align="center" property="yssj_ysje" label="应收金额">
+			</el-table-column>
+
+			<el-table-column align="center" property="yssj_kstime" label="开始日期">
+				<template slot-scope="scope">
+					{{parseTime(scope.row.yssj_kstime,'{y}-{m}-{d}')}}
+				</template>
+			</el-table-column>
+
+			<el-table-column align="center" property="yssj_jztime" label="结束日期">
+				<template slot-scope="scope">
+					{{parseTime(scope.row.yssj_jztime,'{y}-{m}-{d}')}}
+				</template>
+			</el-table-column>
+
+			<el-table-column align="center" property="yssj_fydj" label="费用单价" width="70">
+			</el-table-column>
+
+			<el-table-column align="center" property="cbgl_sqsl" label="上期数" width="60">
+			</el-table-column>
+
+			<el-table-column align="center" property="cbgl_bqsl" label="本期数" width="60">
+			</el-table-column>
+
+			<el-table-column align="center" property="cbgl_cbyl" label="用量" width="70">
+			</el-table-column>
+
+			<el-table-column align="center" property="cbgl_ybbl" label="倍率" width="50">
+			</el-table-column>
+
+		</el-table>
+
+		<div style="padding-top: 4px;"></div>
+		<div style="margin-left: 20px; color: #000000; margin-bottom: 2px;">合计：{{total_money}} 元</div>
+		<div style="border-bottom: #000000 1px solid; margin-bottom: 2px;"> </div>
+		<div style="margin-left: 20px;">
+			<div class="middle-name-a">
+				<div class="middle-name-b2">收款人：{:session("shop.cname")}</div>
+				<div class="middle-name-b2">收款方式：{{syt_method}}</div>
+				<div class="middle-name-b1">收款单位：{{shop_skdw}}</div>
+			</div>
+		</div>
+		<div style="margin-left: 20px;">
+<!--				<div class="middle-name-b23">众森物业全体员工祝您生活快乐每一天! 服务电话:19845087019</div>-->
+				<div class="middle-name-b23">{:session("shop.shop_name")}全体员工祝您生活快乐每一天! 服务电话:{:session("shop.shop_tel")}</div>
+		</div>
+	</el-card>
+</div>
+
+{/block}
+{block name="script"}
+
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script>
+new Vue({
+	el: '#app',
+	components:{
+	},
+	data: function() {
+		return {
+			searchData:{
+				syt_id:7,
+			},
+			loading: false,
+			page_data: {
+				limit: 10000,
+				page: 1,
+				total:10000,
+			},
+			single:true,
+			multiple:true,
+			search_visible:true,
+			list: [],
+
+			title_name:'',
+			bill_sn:'',
+			pay_sn:'',
+			pay_member_name:'',
+			total_money:0,
+			yssj_fksj:'',
+			yssj_jzmj:'',
+			syt_method:'',
+			shop_skdw:'',
+		}
+	},
+	methods:{
+		index(){
+			let param = {limit:this.page_data.limit,page:this.page_data.page,order:this.order,sort:this.sort}
+			Object.assign(param, this.searchData,this.urlobj)
+			this.loading = true
+			axios.post(base_url + '/Syt/printIndexLists',param).then(res => {
+				if(res.data.status == 200){
+					this.list = res.data.data.data
+
+					this.title_name = res.data.title_name
+					this.bill_sn = res.data.bill_sn
+					this.pay_sn = res.data.pay_sn
+					this.pay_member_name = res.data.pay_member_name
+					this.total_money = res.data.total_money
+					this.yssj_fksj = res.data.yssj_fksj
+					this.yssj_jzmj = res.data.yssj_jzmj
+					this.syt_method = res.data.syt_method
+					this.shop_skdw = res.data.shop_skdw
+					this.loading = false
+				}else{
+					this.$message.error(res.data.msg);
+				}
+			})
+		},
+	},
+	mounted(){
+		this.index()
+	},
+})
+</script>
+<style>
+
+	.el-table eltable {color: #000000; width: 10px; }
+
+	.el-table__header tr, .el-table__header th {color: #000000; padding: 0; height: 11px; font-size: 11px; }
+
+	.title-name {color: #000000; font-size: 30px; text-align: center; padding-bottom: 5px; }
+
+	.flex-a { display: flex; justify-content: center; }
+
+	.flex-b { border-bottom: #000000 1px solid; width: 70%; align-items: center; margin-bottom: 3px; }
+
+	.middle-name-a {color: #000000; display: flex; justify-content: center; height: 25px; }
+
+	.middle-name-b1 {color: #000000; width: 66%; }
+
+	.middle-name-b2 {color: #000000; width: 33%; }
+	.middle-name-b23 {color: #000000; }
+
+	.middle-name-b3 {color: #000000; width: 33%; }
+
+	.el-table--scrollable-x .el-table__body-wrapper {
+		overflow-x: hidden;
+	}
+
+	.el-card__body {
+		/*padding: 5px;*/
+		padding-top: 2px;
+		padding-bottom: 2px;
+		padding-left: 12px;
+		padding-right: 12px;
+	}
+	.el-table .cell {
+		line-height: 15px;
+		padding-right: 0;
+	}
+	.el-table .cell, .el-table--border .el-table__cell:first-child .cell {
+		padding-left: 0;
+	}
+	div {
+		font-size: 12px;
+		color: #000000
+	}
+	.el-table--border {
+		border-right: 1px solid #000000;
+		border-bottom: 1px solid #000000;
+	}
+	.el-table__cell {
+		border: 1px solid #000000;
+	}
+
+</style>
+{/block}

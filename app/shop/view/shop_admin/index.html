@@ -1,0 +1,279 @@
+{extend name='common/container'}
+{block name="content"}
+
+<el-tabs class="list_tab" v-model="tabPosition" type="card" @tab-click="selectTab" style="background-color:#fff; padding-top:20px;">
+	<el-tab-pane v-for="(item,i) in xqgl_id" :key="i" :label="item.key" :name="item.val.toString()"></el-tab-pane>
+</el-tabs>
+
+<div style="margin:0 15px 15px 15px;">
+<el-card shadow="never" style="min-height:650px;">
+<div v-if="search_visible" id="search" class="search">
+	<el-form ref="form" size="small" :model="searchData" inline>
+		<el-form-item label="人员姓名">
+			<el-input id="cname" v-model="searchData.cname"  style="width:150px;" placeholder="请输入人员姓名"></el-input>
+		</el-form-item>
+		<el-form-item label="开资项目">
+			<el-select @change="selectZzgl_id"  style="width:150px" v-model="searchData.xqgl_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in xqgl_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="所属部门">
+			<treeselect style="width:150px" :default-expand-level="2" v-model="searchData.zzgl_id" :options="zzgl_id" :normalizer="normalizer" :show-count="true" placeholder="请选择所属部门"/>
+		</el-form-item>
+		<el-form-item label="所属岗位">
+			<treeselect style="width:150px" :default-expand-level="2" v-model="searchData.gwgl_id" :options="gwgl_id" :normalizer="normalizer" :show-count="true" placeholder="请选择所属岗位"/>
+		</el-form-item>
+		<el-form-item label="用户账号">
+			<el-input id="account" v-model="searchData.account"  style="width:150px;" placeholder="请输入用户账号"></el-input>
+		</el-form-item>
+		<el-form-item label="用户手机">
+			<el-input id="tel" v-model="searchData.tel"  style="width:150px;" placeholder="请输入用户手机"></el-input>
+		</el-form-item>
+		<search-tool :search_data.sync="searchData" @refesh_list="index"></search-tool>
+	</el-form>
+</div>
+<div class="btn-group" style="margin-top:10px;margin-bottom:10px;">
+	<div>
+		<el-button v-for="item in button_group" :key="item.access" v-if="checkPermission(item.access,'{:implode(',',session('shop.access'))}','{:session('shop.role_id')}',[1])" :disabled="$data[item.disabled]" :type="item.color" size="mini" :icon="item.icon" @click="fn(item.clickname)">
+			<span v-if="item.batch" v-text="$data['batchUpdateStatus']?'批量保存':'批量编辑'"></span>
+			<span v-else v-text="item.name"></span>
+		</el-button>
+	</div>
+	<div><table-tool :search_visible.sync="search_visible"   @refesh_list="index"></table-tool></div>
+</div>
+<el-table :row-class-name="rowClass" @selection-change="selection"  @row-click="handleRowClick"  row-key="shop_admin_id"  :header-cell-style="{ background: '#eef1f6', color: '#606266' }" @sort-change='sortChange' v-loading="loading"  ref="multipleTable" border class="eltable" :data="list"  style="width: 100%">
+	<el-table-column align="center" type="selection" width="42"></el-table-column>
+	<el-table-column align="center" type = '' property="shop_admin_id"  label="人员编号" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="cname"  label="人员姓名" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="xqgl_name"  label="开资项目" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="zzgl_bmmc"  label="所属部门" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="gwgl_gwmc"  label="所属岗位" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="account"  label="用户账号" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="tel"  label="用户手机" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="disable"  label="是否启用" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<el-switch @change="updateExt(scope.row,'disable')" :active-value="1" :inactive-value="0" v-model="scope.row.disable"></el-switch>
+		</template>
+	</el-table-column>
+	<el-table-column :fixed="ismobile()?false:'right'" label="操作" align="center" width="150">
+		<template slot-scope="scope">
+			<div v-if="scope.row.shop_admin_id">
+				<el-button v-if="checkPermission('/shop/ShopAdmin/update.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-edit" type="primary" @click="update(scope.row)" >修改</el-button>
+			</div>
+		</template>
+	</el-table-column>
+</el-table>
+<Page :total="page_data.total" :page.sync="page_data.page" :limit.sync="page_data.limit" @pagination="index" />
+</el-card>
+
+<!--添加员工-->
+<Add :show.sync="dialog.addDialogStatus" size="small" @refesh_list="index"></Add>
+<!--复制添加-->
+<Copydata :info="copydataInfo" :show.sync="dialog.copydataDialogStatus" size="small" @refesh_list="index"></Copydata>
+<!--修改-->
+<Update :info="updateInfo" :show.sync="dialog.updateDialogStatus" size="small" @refesh_list="index"></Update>
+<!--重置密码-->
+<Resetpwd :info="resetPwdInfo" :show.sync="dialog.resetPwdDialogStatus" size="small" @refesh_list="index"></ResetPwd>
+<!--扩展信息-->
+<Ryxxsz :info="ryxxszInfo" :show.sync="dialog.ryxxszDialogStatus" size="small"></Ryxxsz>
+<!--工资记录-->
+<Gzjilu :info="gzjiluInfo" :show.sync="dialog.gzjiluDialogStatus" size="small"></Gzjilu>
+
+</div>
+
+{/block}
+{block name="script"}
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script src="__PUBLIC__/assets/libs/treeselect/vue-treeselect.umd.min.js"></script>
+<link rel="stylesheet" href="__PUBLIC__/assets/libs/treeselect/vue-treeselect.min.css">
+<script src="__PUBLIC__/components/shop/shopadmin/add.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/shopadmin/copydata.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/shopadmin/update.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/shopadmin/resetPwd.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/shopadmin/ryxxsz.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/shopadmin/gzjilu.js?v=<?php echo rand(1000,9999)?>"></script>
+<script>
+new Vue({
+	el: '#app',
+	components:{
+		'treeselect':VueTreeselect.Treeselect,
+	},
+	data: function() {
+		return {
+			dialog: {
+				addDialogStatus : false,
+				copydataDialogStatus : false,
+				updateDialogStatus : false,
+				resetPwdDialogStatus : false,
+				ryxxszDialogStatus : false,
+				gzjiluDialogStatus : false,
+			},
+			searchData:{},
+			button_group:[
+				{name:'添加员工',color:'success',access:'/shop/ShopAdmin/add.html',icon:'el-icon-plus',disabled:'',clickname:'add'},
+				{name:'复制添加',color:'success',access:'/shop/ShopAdmin/copydata.html',icon:'el-icon-document-copy',disabled:'single',clickname:'copydata'},
+				{name:'修改',color:'primary',access:'/shop/ShopAdmin/update.html',icon:'el-icon-edit',disabled:'single',clickname:'update'},
+				{name:'重置密码',color:'primary',access:'/shop/ShopAdmin/resetPwd.html',icon:'el-icon-lock',disabled:'single',clickname:'resetPwd'},
+				{name:'扩展信息',color:'primary',access:'/shop/ShopAdmin/ryxxsz.html',icon:'el-icon-plus',disabled:'single',clickname:'ryxxsz'},
+				{name:'工资记录',color:'primary',access:'/shop/ShopAdmin/gzjilu.html',icon:'el-icon-plus',disabled:'single',clickname:'gzjilu'},
+			],
+			loading: false,
+			page_data: {
+				limit: 20,
+				page: 1,
+				total:20,
+			},
+			order:'',
+			sort:'',
+			ids: [],
+			single:true,
+			multiple:true,
+			search_visible:false,
+			list: [],
+			xqgl_id: [],
+			zzgl_id: [],
+			gwgl_id: [],
+			copydataInfo:{},
+			updateInfo:{},
+			resetPwdInfo:{},
+			ryxxszInfo:{},
+			gzjiluInfo:{},
+			tabPosition:'10000',
+		}
+	},
+	methods:{
+		index(){
+			let param = {limit:this.page_data.limit,page:this.page_data.page,order:this.order,sort:this.sort}
+			Object.assign(param, this.searchData,this.urlobj)
+			this.loading = true
+			axios.post(base_url + '/ShopAdmin/index',param).then(res => {
+				if(res.data.status == 200){
+					this.list = res.data.data.data
+					this.page_data.total = res.data.data.total
+					this.loading = false
+					if(this.page_data.page == 1){
+						this.xqgl_id = res.data.sql_field_data.xqgl_ids
+						this.gwgl_id = res.data.sql_field_data.gwgl_ids
+					}
+				}else{
+					this.$message.error(res.data.msg);
+				}
+			})
+		},
+		add(){
+			this.dialog.addDialogStatus = true
+		},
+		copydata(row){
+			let id = row.shop_admin_id ? row.shop_admin_id : this.ids.join(',')
+			axios.post(base_url + '/ShopAdmin/getCopydataInfo',{shop_admin_id:id}).then(res => {
+				if(res.data.status == 200){
+					this.dialog.copydataDialogStatus = true
+					this.copydataInfo = res.data.data
+				}else{
+					this.$message.error(res.data.msg)
+				}
+			})
+		},
+		update(row){
+			let id = row.shop_admin_id ? row.shop_admin_id : this.ids.join(',')
+			axios.post(base_url + '/ShopAdmin/getUpdateInfo',{shop_admin_id:id}).then(res => {
+				if(res.data.status == 200){
+					this.dialog.updateDialogStatus = true
+					this.updateInfo = res.data.data
+				}else{
+					this.$message.error(res.data.msg)
+				}
+			})
+		},
+		resetPwd(row){
+			this.dialog.resetPwdDialogStatus = true
+			this.resetPwdInfo = {shop_admin_id:row.shop_admin_id ? row.shop_admin_id : this.ids.join(',')}
+		},
+		ryxxsz(row){
+			let ids = row.shop_admin_id ? row.shop_admin_id : this.ids.join(',')
+			let data = {}
+			this.list.forEach((item,i) => {
+				if(item.shop_admin_id == ids){
+					data = this.list[i]
+				}
+			})
+			this.ryxxszInfo = data
+			this.dialog.ryxxszDialogStatus = true
+		},
+		gzjilu(row){
+			let ids = row.shop_admin_id ? row.shop_admin_id : this.ids.join(',')
+			let data = {}
+			this.list.forEach((item,i) => {
+				if(item.shop_admin_id == ids){
+					data = this.list[i]
+				}
+			})
+			this.gzjiluInfo = data
+			this.dialog.gzjiluDialogStatus = true
+		},
+		selection(selection) {
+			this.ids = selection.map(item => item.shop_admin_id)
+			this.single = selection.length != 1
+			this.multiple = !selection.length
+		},
+		handleRowClick(row, rowIndex,event){
+			if(event.target.className !== 'el-input__inner'){
+				this.$refs.multipleTable.toggleRowSelection(row)
+			}
+		},
+		rowClass ({ row, rowIndex }) {
+			for(let i=0;i<this.ids.length;i++) {
+				if (row.shop_admin_id === this.ids[i]) {
+					return 'rowLight'
+				}
+			}
+		},
+		sortChange(val){
+			if(val.order == 'descending'){
+				this.order= 'desc'
+			}
+			if(val.order == 'ascending'){
+				this.order= 'asc'
+			}
+			this.sort = val.prop
+			this.index()
+		},
+		/** 转换菜单数据结构 */
+		normalizer(node) {
+			if (node.children && !node.children.length) {
+				delete node.children
+			}
+			return {
+				id: node.val,
+				label: node.key,
+				children: node.children
+			}
+		},
+		selectZzgl_id(val){
+			axios.post(base_url + '/ShopAdmin/getZzgl_id',{xqgl_id:val}).then(res => {
+				if(res.data.status == 200){
+					this.zzgl_id = res.data.data
+				}
+			})
+		},
+		selectTab(tab,event){
+			this.searchData.xqgl_id = this.tabPosition
+			this.index()
+		},
+		fn(method){
+			this[method](this.ids)
+		},
+	},
+	mounted(){
+		this.index()
+	},
+})
+</script>
+{/block}

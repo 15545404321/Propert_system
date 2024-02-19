@@ -1,0 +1,340 @@
+{extend name='common/container'}
+{block name="content"}
+
+<el-tabs class="list_tab" v-model="tabPosition" type="card" @tab-click="selectTab" style="background-color:#fff; padding-top:20px;">
+	<el-tab-pane v-for="(item,i) in xqgl_id" :key="i" :label="item.key" :name="item.val.toString()"></el-tab-pane>
+</el-tabs>
+
+<div style="margin:0 15px 15px 15px;">
+<el-card shadow="never" style="min-height:650px;">
+<div v-if="search_visible" id="search" class="search">
+	<el-form ref="form" size="small" :model="searchData" inline>
+		<el-form-item label="所属项目">
+			<el-select   style="width:150px" v-model="searchData.xqgl_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in xqgl_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="结算月份">
+			<el-input id="xz_ffdate" v-model="searchData.xz_ffdate"  style="width:150px;" placeholder="请输入结算月份"></el-input>
+		</el-form-item>
+		<el-form-item label="结算周期">
+			<el-input id="gz_zhouqi" v-model="searchData.gz_zhouqi"  style="width:150px;" placeholder="请输入结算周期"></el-input>
+		</el-form-item>
+		<el-form-item label="发放批次">
+			<el-select   style="width:150px" v-model="searchData.xzpici_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in xzpici_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="考勤审核">
+			<el-select style="width:150px" v-model="searchData.gz_kqsh" filterable clearable placeholder="请选择">
+				<el-option key="0" label="已审" value="1"></el-option>
+				<el-option key="1" label="待审" value="0"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="会计审核">
+			<el-select style="width:150px" v-model="searchData.gz_kjsh" filterable clearable placeholder="请选择">
+				<el-option key="0" label="已审" value="1"></el-option>
+				<el-option key="1" label="待审" value="0"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="总经理审核">
+			<el-select style="width:150px" v-model="searchData.gz_zjlsh" filterable clearable placeholder="请选择">
+				<el-option key="0" label="已审" value="1"></el-option>
+				<el-option key="1" label="待审" value="0"></el-option>
+			</el-select>
+		</el-form-item>
+		<search-tool :search_data.sync="searchData" @refesh_list="index"></search-tool>
+	</el-form>
+</div>
+<div class="btn-group" style="margin-top:10px;margin-bottom:10px;">
+	<div>
+		<el-button v-for="item in button_group" :key="item.access" v-if="checkPermission(item.access,'{:implode(',',session('shop.access'))}','{:session('shop.role_id')}',[1])" :disabled="$data[item.disabled]" :type="item.color" size="mini" :icon="item.icon" @click="fn(item.clickname)">
+			<span v-if="item.batch" v-text="$data['batchUpdateStatus']?'批量保存':'批量编辑'"></span>
+			<span v-else v-text="item.name"></span>
+		</el-button>
+	</div>
+	<div><table-tool :search_visible.sync="search_visible"   @refesh_list="index"></table-tool></div>
+</div>
+<el-table :row-class-name="rowClass" @selection-change="selection"  @row-click="handleRowClick"  row-key="gongzi_id"  :header-cell-style="{ background: '#eef1f6', color: '#606266' }" @sort-change='sortChange' v-loading="loading"  ref="multipleTable" border class="eltable" :data="list"  style="width: 100%">
+	<el-table-column align="center" type="selection" width="42"></el-table-column>
+	<el-table-column align="center" type = '' property="gongzi_id"  label="编号"  width="70">
+	</el-table-column>
+	<el-table-column align="center"  property="xqgl_name"  label="所属项目" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="cname"  label="员工姓名" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="xz_ffdate"  label="结算月份" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="gz_zhouqi"  label="结算周期" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="gz_jine"  label="发放金额" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="gz_mingxi"  label="工资明细" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="xzpici_id" sortable='custom' label="发放批次" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="addtime"  label="生成时间" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			{{parseTime(scope.row.addtime)}}
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="gz_kqsh"  label="考勤审核" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<el-tag type="success" v-if="scope.row.gz_kqsh == '1'" size="mini" effect="dark">已审</el-tag>
+			<el-tag type="warning" v-if="scope.row.gz_kqsh == '0'" size="mini" effect="dark">待审</el-tag>
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="gz_kjsh"  label="会计审核" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<el-tag type="success" v-if="scope.row.gz_kjsh == '1'" size="mini" effect="dark">已审</el-tag>
+			<el-tag type="warning" v-if="scope.row.gz_kjsh == '0'" size="mini" effect="dark">待审</el-tag>
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="gz_zjlsh"  label="总经理审核" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<el-tag type="success" v-if="scope.row.gz_zjlsh == '1'" size="mini" effect="dark">已审</el-tag>
+			<el-tag type="warning" v-if="scope.row.gz_zjlsh == '0'" size="mini" effect="dark">待审</el-tag>
+		</template>
+	</el-table-column>
+	<el-table-column :fixed="ismobile()?false:'right'" label="操作" align="center" width="190">
+		<template slot-scope="scope">
+			<div v-if="scope.row.gongzi_id">
+				<el-button v-if="scope.row.gz_kqsh == 0 && checkPermission('/shop/Gongzi/update.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-edit" type="primary" @click="update(scope.row)" >修改</el-button>
+				<el-button v-if="scope.row.gz_kqsh == 0 && checkPermission('/shop/Gongzi/delete.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-delete" type="danger" @click="del(scope.row)" >删除</el-button>
+			</div>
+		</template>
+	</el-table-column>
+</el-table>
+<Page :total="page_data.total" :page.sync="page_data.page" :limit.sync="page_data.limit" @pagination="index" />
+</el-card>
+
+<!--添加-->
+<Add :show.sync="dialog.addDialogStatus" size="small" @refesh_list="index"></Add>
+<!--修改-->
+<Update :info="updateInfo" :show.sync="dialog.updateDialogStatus" size="small" @refesh_list="index"></Update>
+<!--查看详情-->
+<Detail :info="detailInfo" :show.sync="dialog.detailDialogStatus" size="small" @refesh_list="index"></Detail>
+<!--考勤审核-->
+<Batupkq :info="batupkqInfo" :show.sync="dialog.batupkqDialogStatus" size="small" @refesh_list="index"></Batupkq>
+<!--会计审核-->
+<Batupkj :info="batupkjInfo" :show.sync="dialog.batupkjDialogStatus" size="small" @refesh_list="index"></Batupkj>
+<!--总经理审核-->
+<Batupdate :info="batupdateInfo" :show.sync="dialog.batupdateDialogStatus" size="small" @refesh_list="index"></Batupdate>
+<!--导出弹窗-->
+<el-dialog title="导出进度条" :visible="dumpshow" :before-close="closedialog" width="500px">
+	<el-progress :percentage="percentage"></el-progress>
+</el-dialog>
+
+</div>
+
+{/block}
+{block name="script"}
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script src="__PUBLIC__/assets/libs/vuedragable/Sortable.min.js"></script>
+<script src="__PUBLIC__/assets/libs/vuedragable/vuedraggable.umd.min.js"></script>
+<script src="__PUBLIC__/components/shop/gongzi/add.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/gongzi/update.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/gongzi/detail.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/gongzi/batupkq.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/gongzi/batupkj.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/gongzi/batupdate.js?v=<?php echo rand(1000,9999)?>"></script>
+<script>
+new Vue({
+	el: '#app',
+	components:{
+		'draggable':window.vuedraggable,
+	},
+	data: function() {
+		return {
+			dialog: {
+				addDialogStatus : false,
+				updateDialogStatus : false,
+				detailDialogStatus : false,
+				batupkqDialogStatus : false,
+				batupkjDialogStatus : false,
+				batupdateDialogStatus : false,
+			},
+			searchData:{},
+			button_group:[
+				{name:'添加',color:'success',access:'/shop/Gongzi/add.html',icon:'el-icon-plus',disabled:'',clickname:'add'},
+				{name:'查看详情',color:'info',access:'/shop/Gongzi/detail.html',icon:'el-icon-view',disabled:'single',clickname:'detail'},
+				{name:'考勤审核',color:'primary',access:'/shop/Gongzi/batupkq.html',icon:'el-icon-edit',disabled:'multiple',clickname:'batupkq'},
+				{name:'会计审核',color:'primary',access:'/shop/Gongzi/batupkj.html',icon:'el-icon-edit',disabled:'multiple',clickname:'batupkj'},
+				{name:'总经理审核',color:'primary',access:'/shop/Gongzi/batupdate.html',icon:'el-icon-edit',disabled:'multiple',clickname:'batupdate'},
+				{name:'导出',color:'warning',access:'/shop/Gongzi/dumpdata.html',icon:'el-icon-download',disabled:'',clickname:'dumpdata'},
+			],
+			loading: false,
+			page_data: {
+				limit: 20,
+				page: 1,
+				total:20,
+			},
+			order:'',
+			sort:'',
+			ids: [],
+			single:true,
+			multiple:true,
+			search_visible:false,
+			list: [],
+			xqgl_id: [],
+			xzpici_id: [],
+			updateInfo:{},
+			detailInfo:{},
+			batupkqInfo:{},
+			batupkjInfo:{},
+			batupdateInfo:{},
+			exceldata:[],
+			dumppage:1,
+			ws:{},
+			dumpshow:false,
+			percentage:0,
+			filename:'',
+			tabPosition:'10000',
+		}
+	},
+	methods:{
+		index(){
+			let param = {limit:this.page_data.limit,page:this.page_data.page,order:this.order,sort:this.sort}
+			Object.assign(param, this.searchData,this.urlobj)
+			this.loading = true
+			axios.post(base_url + '/Gongzi/index',param).then(res => {
+				if(res.data.status == 200){
+					this.list = res.data.data.data
+					this.page_data.total = res.data.data.total
+					this.loading = false
+					if(this.page_data.page == 1){
+						this.xqgl_id = res.data.sql_field_data.xqgl_ids
+						this.xzpici_id = res.data.sql_field_data.xzpici_ids
+					}
+				}else{
+					this.$message.error(res.data.msg);
+				}
+			})
+		},
+		updateExt(row,field){
+			if(row.gongzi_id){
+				axios.post(base_url + '/Gongzi/updateExt',{gongzi_id:row.gongzi_id,[field]:row[field]}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}
+		},
+		add(){
+			this.dialog.addDialogStatus = true
+		},
+		update(row){
+			let id = row.gongzi_id ? row.gongzi_id : this.ids.join(',')
+			axios.post(base_url + '/Gongzi/getUpdateInfo',{gongzi_id:id}).then(res => {
+				if(res.data.status == 200){
+					this.dialog.updateDialogStatus = true
+					this.updateInfo = res.data.data
+				}else{
+					this.$message.error(res.data.msg)
+				}
+			})
+		},
+		del(row){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				let ids = row.gongzi_id ? row.gongzi_id : this.ids.join(',')
+				axios.post(base_url + '/Gongzi/delete',{gongzi_id:ids}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+						this.index()
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}).catch(() => {})
+		},
+		detail(row){
+			this.dialog.detailDialogStatus = true
+			this.detailInfo = {gongzi_id:row.gongzi_id ? row.gongzi_id : this.ids.join(',')}
+		},
+		batupkq(row){
+			this.dialog.batupkqDialogStatus = true
+			this.batupkqInfo = {gongzi_id:row.gongzi_id ? row.gongzi_id : this.ids.join(',')}
+		},
+		batupkj(row){
+			this.dialog.batupkjDialogStatus = true
+			this.batupkjInfo = {gongzi_id:row.gongzi_id ? row.gongzi_id : this.ids.join(',')}
+		},
+		batupdate(row){
+			this.dialog.batupdateDialogStatus = true
+			this.batupdateInfo = {gongzi_id:row.gongzi_id ? row.gongzi_id : this.ids.join(',')}
+		},
+		dumpdata(){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				this.dumpshow = true
+				this.confirmdumpdata()
+			}).catch(() => {})
+		},
+		confirmdumpdata(){
+			let query = {page:this.dumppage,order:this.order,sort:this.sort}
+			Object.assign(query, this.searchData,{gongzi_id:this.ids.join(',')},this.urlobj)
+			axios.post(base_url + '/Gongzi/dumpdata',query).then(res => {
+				if(res.data.state == 'ok'){
+					this.percentage = res.data.percentage
+					this.dumppage = this.dumppage + 1
+					this.confirmdumpdata()
+				}else{
+					this.dumpshow = false
+					this.dumppage = 1
+					location.href = base_url + '/Gongzi/dumpdata?state=ok&'+param(query)
+				}
+			})
+		},
+		closedialog(){
+			this.dumpshow = false
+		},
+		selection(selection) {
+			this.ids = selection.map(item => item.gongzi_id)
+			this.single = selection.length != 1
+			this.multiple = !selection.length
+		},
+		handleRowClick(row, rowIndex,event){
+			if(event.target.className !== 'el-input__inner'){
+				this.$refs.multipleTable.toggleRowSelection(row)
+			}
+		},
+		rowClass ({ row, rowIndex }) {
+			for(let i=0;i<this.ids.length;i++) {
+				if (row.gongzi_id === this.ids[i]) {
+					return 'rowLight'
+				}
+			}
+		},
+		sortChange(val){
+			if(val.order == 'descending'){
+				this.order= 'desc'
+			}
+			if(val.order == 'ascending'){
+				this.order= 'asc'
+			}
+			this.sort = val.prop
+			this.index()
+		},
+		selectTab(tab,event){
+			this.searchData.xqgl_id = this.tabPosition
+			this.index()
+		},
+		fn(method){
+			this[method](this.ids)
+		},
+	},
+	mounted(){
+		this.index()
+	},
+})
+</script>
+{/block}

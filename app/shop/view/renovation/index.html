@@ -1,0 +1,246 @@
+{extend name='common/container'}
+{block name="content"}
+
+<el-tabs class="list_tab" v-model="tabPosition" type="card" @tab-click="selectTab" style="background-color:#fff; padding-top:20px;">
+	<el-tab-pane v-for="(item,i) in renovation_type" :key="i" :label="item.key" :name="item.val.toString()"></el-tab-pane>
+</el-tabs>
+
+<div style="margin:0 15px 15px 15px;">
+<el-card shadow="never" style="min-height:650px;">
+<div v-if="search_visible" id="search" class="search">
+	<el-form ref="form" size="small" :model="searchData" inline>
+		<el-form-item label="导航标题">
+			<el-input id="renovation_name" v-model="searchData.renovation_name"  style="width:150px;" placeholder="请输入导航标题"></el-input>
+		</el-form-item>
+		<el-form-item label="导航页面">
+			<el-select @change="selectRenovation_place"  style="width:150px" v-model="searchData.renovation_page" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in renovation_page" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="导航位置">
+			<el-select   style="width:150px" v-model="searchData.renovation_place" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in renovation_place" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="导航分类">
+			<el-select   style="width:150px" v-model="searchData.renovation_type" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in renovation_type" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="导航简介">
+			<el-input id="renovation_synopsis" v-model="searchData.renovation_synopsis"  style="width:150px;" placeholder="请输入导航简介"></el-input>
+		</el-form-item>
+		<search-tool :search_data.sync="searchData" @refesh_list="index"></search-tool>
+	</el-form>
+</div>
+<div class="btn-group" style="margin-top:10px;margin-bottom:10px;">
+	<div>
+		<el-button v-for="item in button_group" :key="item.access" v-if="checkPermission(item.access,'{:implode(',',session('shop.access'))}','{:session('shop.role_id')}',[1])" :disabled="$data[item.disabled]" :type="item.color" size="mini" :icon="item.icon" @click="fn(item.clickname)">
+			<span v-if="item.batch" v-text="$data['batchUpdateStatus']?'批量保存':'批量编辑'"></span>
+			<span v-else v-text="item.name"></span>
+		</el-button>
+	</div>
+	<div><table-tool :search_visible.sync="search_visible"   @refesh_list="index"></table-tool></div>
+</div>
+<el-table :row-class-name="rowClass" @selection-change="selection"  @row-click="handleRowClick"  row-key="renovation_id"  :header-cell-style="{ background: '#eef1f6', color: '#606266' }" @sort-change='sortChange' v-loading="loading"  ref="multipleTable" border class="eltable" :data="list"  style="width: 100%">
+	<el-table-column align="center" type="selection" width="42"></el-table-column>
+	<el-table-column align="center" type = '' property="renovation_id"  label="编号"  width="70">
+	</el-table-column>
+	<el-table-column align="center"  property="renovation_name"  label="导航标题" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="renovation_image"  label="导航图片" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<div class="demo-image__preview">
+				<el-image v-if="scope.row.renovation_image" class="table_list_pic" :src="scope.row.renovation_image"  :preview-src-list="[scope.row.renovation_image]"></el-image>
+			</div>
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="renovation_page"  label="导航页面" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="renovation_synopsis"  label="导航简介" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column :fixed="ismobile()?false:'right'" label="操作" align="center" width="190">
+		<template slot-scope="scope">
+			<div v-if="scope.row.renovation_id">
+				<el-button v-if="checkPermission('/shop/Renovation/update.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-edit" type="primary" @click="update(scope.row)" >修改</el-button>
+				<el-button v-if="checkPermission('/shop/Renovation/delete.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-delete" type="danger" @click="del(scope.row)" >删除</el-button>
+			</div>
+		</template>
+	</el-table-column>
+</el-table>
+<Page :total="page_data.total" :page.sync="page_data.page" :limit.sync="page_data.limit" @pagination="index" />
+</el-card>
+
+<!--添加-->
+<Add :show.sync="dialog.addDialogStatus" size="small" @refesh_list="index"></Add>
+<!--修改-->
+<Update :info="updateInfo" :show.sync="dialog.updateDialogStatus" size="small" @refesh_list="index"></Update>
+<!--查看详情-->
+<Detail :info="detailInfo" :show.sync="dialog.detailDialogStatus" size="small" @refesh_list="index"></Detail>
+
+</div>
+
+{/block}
+{block name="script"}
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script src="__PUBLIC__/assets/libs/vuedragable/Sortable.min.js"></script>
+<script src="__PUBLIC__/assets/libs/vuedragable/vuedraggable.umd.min.js"></script>
+<script src="__PUBLIC__/components/shop/renovation/add.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/renovation/update.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/renovation/detail.js?v=<?php echo rand(1000,9999)?>"></script>
+<script>
+new Vue({
+	el: '#app',
+	components:{
+		'draggable':window.vuedraggable,
+	},
+	data: function() {
+		return {
+			dialog: {
+				addDialogStatus : false,
+				updateDialogStatus : false,
+				detailDialogStatus : false,
+			},
+			searchData:{
+				renovation_type:'1',
+			},
+			button_group:[
+				{name:'添加',color:'success',access:'/shop/Renovation/add.html',icon:'el-icon-plus',disabled:'',clickname:'add'},
+				{name:'修改',color:'primary',access:'/shop/Renovation/update.html',icon:'el-icon-edit',disabled:'single',clickname:'update'},
+				{name:'删除',color:'danger',access:'/shop/Renovation/delete.html',icon:'el-icon-delete',disabled:'multiple',clickname:'del'},
+				{name:'查看详情',color:'info',access:'/shop/Renovation/detail.html',icon:'el-icon-view',disabled:'single',clickname:'detail'},
+			],
+			loading: false,
+			page_data: {
+				limit: 20,
+				page: 1,
+				total:20,
+			},
+			order:'',
+			sort:'',
+			ids: [],
+			single:true,
+			multiple:true,
+			search_visible:false,
+			list: [],
+			renovation_page: [],
+			renovation_place: [],
+			renovation_type: [],
+			updateInfo:{},
+			detailInfo:{},
+			tabPosition:'1',
+		}
+	},
+	methods:{
+		index(){
+			let param = {limit:this.page_data.limit,page:this.page_data.page,order:this.order,sort:this.sort}
+			Object.assign(param, this.searchData,this.urlobj)
+			this.loading = true
+			axios.post(base_url + '/Renovation/index',param).then(res => {
+				if(res.data.status == 200){
+					this.list = res.data.data.data
+					this.page_data.total = res.data.data.total
+					this.loading = false
+					if(this.page_data.page == 1){
+						this.renovation_page = res.data.sql_field_data.renovation_pages
+						this.renovation_type = res.data.sql_field_data.renovation_types
+					}
+				}else{
+					this.$message.error(res.data.msg);
+				}
+			})
+		},
+		updateExt(row,field){
+			if(row.renovation_id){
+				axios.post(base_url + '/Renovation/updateExt',{renovation_id:row.renovation_id,[field]:row[field]}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}
+		},
+		add(){
+			this.dialog.addDialogStatus = true
+		},
+		update(row){
+			let id = row.renovation_id ? row.renovation_id : this.ids.join(',')
+			axios.post(base_url + '/Renovation/getUpdateInfo',{renovation_id:id}).then(res => {
+				if(res.data.status == 200){
+					this.dialog.updateDialogStatus = true
+					this.updateInfo = res.data.data
+				}else{
+					this.$message.error(res.data.msg)
+				}
+			})
+		},
+		del(row){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				let ids = row.renovation_id ? row.renovation_id : this.ids.join(',')
+				axios.post(base_url + '/Renovation/delete',{renovation_id:ids}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+						this.index()
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}).catch(() => {})
+		},
+		detail(row){
+			this.dialog.detailDialogStatus = true
+			this.detailInfo = {renovation_id:row.renovation_id ? row.renovation_id : this.ids.join(',')}
+		},
+		selection(selection) {
+			this.ids = selection.map(item => item.renovation_id)
+			this.single = selection.length != 1
+			this.multiple = !selection.length
+		},
+		handleRowClick(row, rowIndex,event){
+			if(event.target.className !== 'el-input__inner'){
+				this.$refs.multipleTable.toggleRowSelection(row)
+			}
+		},
+		rowClass ({ row, rowIndex }) {
+			for(let i=0;i<this.ids.length;i++) {
+				if (row.renovation_id === this.ids[i]) {
+					return 'rowLight'
+				}
+			}
+		},
+		sortChange(val){
+			if(val.order == 'descending'){
+				this.order= 'desc'
+			}
+			if(val.order == 'ascending'){
+				this.order= 'asc'
+			}
+			this.sort = val.prop
+			this.index()
+		},
+		selectRenovation_place(val){
+			axios.post(base_url + '/Renovation/getRenovation_place',{renovation_page:val}).then(res => {
+				if(res.data.status == 200){
+					this.renovation_place = res.data.data
+				}
+			})
+		},
+		selectTab(tab,event){
+			this.searchData.renovation_type = this.tabPosition
+			this.index()
+		},
+		fn(method){
+			this[method](this.ids)
+		},
+	},
+	mounted(){
+		this.index()
+	},
+})
+</script>
+{/block}

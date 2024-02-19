@@ -1,0 +1,345 @@
+{extend name='common/container'}
+{block name="content"}
+<div style="margin:0 15px 15px 15px;">
+<el-card shadow="never" :style="!urlobj.dialogstate ? 'min-height:650px;' : ''">
+<div v-if="urlobj.jumpstate" slot="header" class="clearfix">
+	<span style="font-size:14px;">下拉多选</span>
+	<el-button size="small" @click="back" type="primary" icon="el-icon-back" style="float:right">返回</el-button>
+ </div>
+<div v-if="search_visible" id="search" class="search">
+	<el-form ref="form" size="small" :model="searchData" inline>
+		<el-form-item label="车位编号">
+			<el-select  remote :remote-method="remoteCeweiidList"  style="width:150px" v-model="searchData.cewei_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in cewei_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="费用定义">
+			<el-select @change="selectFybz_id"  style="width:150px" v-model="searchData.fydy_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in fydy_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="费用标准">
+			<el-select   style="width:150px" v-model="searchData.fybz_id" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in fybz_id" :key="i" :label="item.key" :value="item.val"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="生成方式">
+			<el-select style="width:150px" v-model="searchData.cwfy_scfs" filterable clearable placeholder="请选择">
+				<el-option key="0" label="按月生成" value="1"></el-option>
+				<el-option key="1" label="按日生成" value="2"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="生成类型">
+			<el-select style="width:150px" v-model="searchData.cwfy_sclx" filterable clearable placeholder="请选择">
+				<el-option key="0" label="【按每月30天计算】" value="1"></el-option>
+				<el-option key="1" label="【按每月实际天数计算】" value="2"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="开始时间">
+			<el-date-picker value-format="yyyy-MM-dd HH:mm:ss" type="daterange" v-model="searchData.cwfy_kstime" clearable range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期"></el-date-picker>
+		</el-form-item>
+		<el-form-item label="终止时间">
+			<el-date-picker value-format="yyyy-MM-dd HH:mm:ss" type="daterange" v-model="searchData.cwfy_zztime" clearable range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期"></el-date-picker>
+		</el-form-item>
+		<el-form-item label="多选">
+			<el-select style="width:150px" v-model="searchData.dxxx" filterable clearable placeholder="请选择">
+				<el-option key="0" label="男" value="1"></el-option>
+			</el-select>
+		</el-form-item>
+		<el-form-item label="多选2">
+			<el-select   style="width:150px" v-model="searchData.duoxuan" filterable clearable placeholder="请选择">
+				<el-option v-for="(item,i) in duoxuan" :key="i" :label="item.key" :value="item.val.toString()"></el-option>
+			</el-select>
+		</el-form-item>
+		<search-tool :search_data.sync="searchData" @refesh_list="index"></search-tool>
+	</el-form>
+</div>
+<div class="btn-group" style="margin-top:10px;margin-bottom:10px;">
+	<div>
+		<el-button v-for="item in button_group" :key="item.access" v-if="checkPermission(item.access,'{:implode(',',session('shop.access'))}','{:session('shop.role_id')}',[1])" :disabled="$data[item.disabled]" :type="item.color" size="mini" :icon="item.icon" @click="fn(item.clickname)">
+			<span v-if="item.batch" v-text="$data['batchUpdateStatus']?'批量保存':'批量编辑'"></span>
+			<span v-else v-text="item.name"></span>
+		</el-button>
+	</div>
+	<div><table-tool :search_visible.sync="search_visible"   @refesh_list="index"></table-tool></div>
+</div>
+<el-table :row-class-name="rowClass" @selection-change="selection"  @row-click="handleRowClick"  row-key="xldx_id"  :header-cell-style="{ background: '#eef1f6', color: '#606266' }" @sort-change='sortChange' v-loading="loading"  ref="multipleTable" border class="eltable" :data="list"  style="width: 100%">
+	<el-table-column align="center" type="selection" width="42"></el-table-column>
+	<el-table-column align="center" type = '' property="xldx_id"  label="编号"  width="70">
+	</el-table-column>
+	<el-table-column align="center"  property="cewei_id"  label="车位编号" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="fydy_id"  label="费用定义" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="fybz_id"  label="费用标准" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="cwfy_scfs"  label="生成方式" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<el-tag type="primary" v-if="scope.row.cwfy_scfs == '1'" size="mini" effect="dark">按月生成</el-tag>
+			<el-tag type="warning" v-if="scope.row.cwfy_scfs == '2'" size="mini" effect="dark">按日生成</el-tag>
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="cwfy_sclx"  label="生成类型" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<el-tag type="primary" v-if="scope.row.cwfy_sclx == '1'" size="mini" effect="dark">【按每月30天计算】</el-tag>
+			<el-tag type="warning" v-if="scope.row.cwfy_sclx == '2'" size="mini" effect="dark">【按每月实际天数计算】</el-tag>
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="cwfy_kstime"  label="开始时间" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			{{parseTime(scope.row.cwfy_kstime,'{y}-{m}-{d}')}}
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="cwfy_zztime"  label="终止时间" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			{{parseTime(scope.row.cwfy_zztime,'{y}-{m}-{d}')}}
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="cwfy_ksmonth"  label="开始月份" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="cwfy_zzmonth"  label="终止月份" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="member_id"  label="客户id" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="dxxx"  label="多选" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<div v-if="scope.row.dxxx">
+				{{formatStr(scope.row.dxxx,'[{"key":"男","val":"1","label_color":"primary"}]')}}
+			</div>
+		</template>
+	</el-table-column>
+	<el-table-column align="center"  property="duoxuan"  label="多选2" show-overflow-tooltip width="">
+	</el-table-column>
+	<el-table-column align="center"  property="xldx_wenjian"  label="文件" show-overflow-tooltip width="">
+		<template slot-scope="scope">
+			<el-link v-if="scope.row.xldx_wenjian" style="font-size:13px;" :href="scope.row.xldx_wenjian" target="_blank">下载附件</el-link>
+		</template>
+	</el-table-column>
+	<el-table-column :fixed="ismobile()?false:'right'" label="操作" align="center" width="190">
+		<template slot-scope="scope">
+			<div v-if="scope.row.xldx_id">
+				<el-button v-if="checkPermission('/shop/Xldx/update.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-edit" type="primary" @click="update(scope.row)" >修改</el-button>
+				<el-button v-if="checkPermission('/shop/Xldx/delete.html','{:implode(",",session("shop.access"))}','{:session("shop.role_id")}',[1])" size="mini" icon="el-icon-delete" type="danger" @click="del(scope.row)" >删除</el-button>
+			</div>
+		</template>
+	</el-table-column>
+</el-table>
+<Page :total="page_data.total" :page.sync="page_data.page" :limit.sync="page_data.limit" @pagination="index" />
+</el-card>
+
+<!--添加-->
+<Add :show.sync="dialog.addDialogStatus" size="small" @refesh_list="index"></Add>
+<!--修改-->
+<Update :info="updateInfo" :show.sync="dialog.updateDialogStatus" size="small" @refesh_list="index"></Update>
+<!--查看详情-->
+<Detail :info="detailInfo" :show.sync="dialog.detailDialogStatus" size="small" @refesh_list="index"></Detail>
+<!--复制单条数据-->
+<Copydata :info="copydataInfo" :show.sync="dialog.copydataDialogStatus" size="small" @refesh_list="index"></Copydata>
+<!--添加文件-->
+<Addwenjian :show.sync="dialog.addWenjianDialogStatus" size="small" @refesh_list="index"></AddWenjian>
+<!--弹窗连接-->
+<DialogUrl :info="dialogUrlInfo" :show.sync="dialog.dialogUrlDialogStatus" size="small"></DialogUrl>
+
+</div>
+
+{/block}
+{block name="script"}
+<script src="__PUBLIC__/assets/js/app.js"></script>
+<script src="__PUBLIC__/components/shop/xldx/add.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/xldx/update.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/xldx/detail.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/xldx/copydata.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/xldx/addWenjian.js?v=<?php echo rand(1000,9999)?>"></script>
+<script src="__PUBLIC__/components/shop/xldx/dialogUrl.js?v=<?php echo rand(1000,9999)?>"></script>
+<script>
+new Vue({
+	el: '#app',
+	components:{
+	},
+	data: function() {
+		return {
+			dialog: {
+				addDialogStatus : false,
+				updateDialogStatus : false,
+				detailDialogStatus : false,
+				copydataDialogStatus : false,
+				addWenjianDialogStatus : false,
+				dialogUrlDialogStatus : false,
+			},
+			searchData:{},
+			button_group:[
+				{name:'添加',color:'success',access:'/shop/Xldx/add.html',icon:'el-icon-plus',disabled:'',clickname:'add'},
+				{name:'修改',color:'primary',access:'/shop/Xldx/update.html',icon:'el-icon-edit',disabled:'single',clickname:'update'},
+				{name:'删除',color:'danger',access:'/shop/Xldx/delete.html',icon:'el-icon-delete',disabled:'multiple',clickname:'del'},
+				{name:'查看详情',color:'info',access:'/shop/Xldx/detail.html',icon:'el-icon-view',disabled:'single',clickname:'detail'},
+				{name:'复制单条数据',color:'primary',access:'/shop/Xldx/copydata.html',icon:'el-icon-document-copy',disabled:'single',clickname:'copydata'},
+				{name:'弹窗连接',color:'warning',access:'/shop/Xldx/dialogUrl.html',icon:'el-icon-plus',disabled:'',clickname:'dialogUrl'},
+				{name:'添加文件',color:'success',access:'/shop/Xldx/addWenjian.html',icon:'el-icon-plus',disabled:'',clickname:'addWenjian'},
+			],
+			loading: false,
+			page_data: {
+				limit: 20,
+				page: 1,
+				total:20,
+			},
+			order:'',
+			sort:'',
+			ids: [],
+			single:true,
+			multiple:true,
+			search_visible:false,
+			list: [],
+			fydy_id: [],
+			fybz_id: [],
+			duoxuan: [],
+			cewei_id: [],
+			updateInfo:{},
+			detailInfo:{},
+			copydataInfo:{},
+			dialogUrlInfo:{},
+		}
+	},
+	methods:{
+		remoteCeweiidList(val){
+			axios.post(base_url + '/Xldx/remoteCeweiidList',{queryString:val}).then(res => {
+				if(res.data.status == 200){
+					this.cewei_id = res.data.data
+				}
+			})
+		},
+		index(){
+			let param = {limit:this.page_data.limit,page:this.page_data.page,order:this.order,sort:this.sort}
+			Object.assign(param, this.searchData,this.urlobj)
+			this.loading = true
+			axios.post(base_url + '/Xldx/index',param).then(res => {
+				if(res.data.status == 200){
+					this.list = res.data.data.data
+					this.page_data.total = res.data.data.total
+					this.loading = false
+					if(this.page_data.page == 1){
+						this.fydy_id = res.data.sql_field_data.fydy_ids
+						this.duoxuan = res.data.sql_field_data.duoxuans
+					}
+				}else{
+					this.$message.error(res.data.msg);
+				}
+			})
+		},
+		updateExt(row,field){
+			if(row.xldx_id){
+				axios.post(base_url + '/Xldx/updateExt',{xldx_id:row.xldx_id,[field]:row[field]}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}
+		},
+		add(){
+			this.dialog.addDialogStatus = true
+		},
+		update(row){
+			let id = row.xldx_id ? row.xldx_id : this.ids.join(',')
+			axios.post(base_url + '/Xldx/getUpdateInfo',{xldx_id:id}).then(res => {
+				if(res.data.status == 200){
+					this.dialog.updateDialogStatus = true
+					this.updateInfo = res.data.data
+				}else{
+					this.$message.error(res.data.msg)
+				}
+			})
+		},
+		del(row){
+			this.$confirm('确定操作吗?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				let ids = row.xldx_id ? row.xldx_id : this.ids.join(',')
+				axios.post(base_url + '/Xldx/delete',{xldx_id:ids}).then(res => {
+					if(res.data.status == 200){
+						this.$message({message: res.data.msg, type: 'success'})
+						this.index()
+					}else{
+						this.$message.error(res.data.msg)
+					}
+				})
+			}).catch(() => {})
+		},
+		detail(row){
+			this.dialog.detailDialogStatus = true
+			this.detailInfo = {xldx_id:row.xldx_id ? row.xldx_id : this.ids.join(',')}
+		},
+		copydata(row){
+			let id = row.xldx_id ? row.xldx_id : this.ids.join(',')
+			axios.post(base_url + '/Xldx/getCopydataInfo',{xldx_id:id}).then(res => {
+				if(res.data.status == 200){
+					this.dialog.copydataDialogStatus = true
+					this.copydataInfo = res.data.data
+				}else{
+					this.$message.error(res.data.msg)
+				}
+			})
+		},
+		dialogUrl(row){
+			let ids = row.xldx_id ? row.xldx_id : this.ids.join(',')
+			let data = {}
+			this.list.forEach((item,i) => {
+				if(item.xldx_id == ids){
+					data = this.list[i]
+				}
+			})
+			this.dialogUrlInfo = data
+			this.dialog.dialogUrlDialogStatus = true
+		},
+		addWenjian(){
+			this.dialog.addWenjianDialogStatus = true
+		},
+		selection(selection) {
+			this.ids = selection.map(item => item.xldx_id)
+			this.single = selection.length != 1
+			this.multiple = !selection.length
+		},
+		handleRowClick(row, rowIndex,event){
+			if(event.target.className !== 'el-input__inner'){
+				this.$refs.multipleTable.toggleRowSelection(row)
+			}
+		},
+		rowClass ({ row, rowIndex }) {
+			for(let i=0;i<this.ids.length;i++) {
+				if (row.xldx_id === this.ids[i]) {
+					return 'rowLight'
+				}
+			}
+		},
+		sortChange(val){
+			if(val.order == 'descending'){
+				this.order= 'desc'
+			}
+			if(val.order == 'ascending'){
+				this.order= 'asc'
+			}
+			this.sort = val.prop
+			this.index()
+		},
+		back(){
+			history.back(-1)
+		},
+		selectFybz_id(val){
+			axios.post(base_url + '/Xldx/getFybz_id',{fydy_id:val}).then(res => {
+				if(res.data.status == 200){
+					this.fybz_id = res.data.data
+				}
+			})
+		},
+		fn(method){
+			this[method](this.ids)
+		},
+	},
+	mounted(){
+		this.index()
+	},
+})
+</script>
+{/block}

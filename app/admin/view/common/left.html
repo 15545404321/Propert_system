@@ -1,0 +1,141 @@
+<div style="float: left;width:70px;background: #222b45;max-height:100%;" id="left_one_menu">
+	<div style="height: 50px;width:100%;text-align: center;padding-top:10px;">
+		<img src="/assets/images/logo.png" style="margin-top: 15px;width:30px; height:30px; ">
+	</div>
+	<ul id="p-menu" style="padding-inline-start:0px;">
+
+	</ul>
+</div>
+<div id="sidebar-menu">
+	<div class="navbar-brand-box">
+		<div class="logo logo-light" style="text-align:right;">
+			<span class="logo-lg" style="font-size:16px;font-weight: 800;color: #666;">
+				{:config('base_config.site_title')}
+			</span>
+		</div>
+	</div>
+
+	<div style="float: left;overflow: hidden;width: 165px;">
+		<ul class="metismenu list-unstyled" id="side-menu" style="padding-inline-start:0px;">
+
+		</ul>
+		<!--
+	<ul class="metismenu list-unstyled" id="side-menu">
+
+	</ul>
+	-->
+	</div>
+</div>
+<script type="text/javascript">
+const base_url = '<?php echo getBaseUrl()?>';
+
+axios.post(base_url + '/Base/getMenu').then(res => {
+	if(res.data.status == 200){
+		Cookies.set(base_url+'breadcrumb','')
+		var str = '';
+		var pmenu='';
+		var firstMenuId = 0;
+		res.data.data.forEach(one=>{
+			if(!one.children || one.children.length == 0){
+				//str += '<li><a target="iframe0" class="waves-effect j_menu" href="'+one.url+'"><i class="'+one.icon+'"></i><span key="'+one.url+'">'+one.title+'</span></a></li>'
+				pmenu += '<div id="tm'+one.menu_id+'" class="oneMenu" onmouseover="mouseover(tm'+one.menu_id+')" style="height:70px;padding-top:15px;"><a target="iframe0" class="" href="'+one.url+'"><div style="text-align: center;"><i class="'+one.icon+'" style="font-size: 20px;color:#eee;"></i></div><div style="text-align: center;"><span key="'+one.url+'" style="font-size: 13px;color:#ccc;">'+one.title+'</span></div></a></div>'
+			}else{
+				//str += '<li><a target="iframe0" class="has-arrow waves-effect" href="javascript: void(0);"><i class="'+one.icon+'"></i><span key="'+one.url+'">'+one.title+'</span></a>'
+				pmenu += '<div class="oneMenu" onmouseout="mouseout(tm'+one.menu_id+')" onmouseover="mouseover(tm'+one.menu_id+')" style="height:70px;padding-top:15px;" id="tm'+one.menu_id+'"><a target="iframe0" class="" onclick="openMenu('+one.menu_id+')" href="javascript: void(0);"><div style="text-align: center;"><i class="'+one.icon+'" style="font-size: 20px;color:#eee;"></i></div><div style="text-align: center;"><span key="'+one.url+'" style="font-size: 13px;color:#ccc;">'+one.title+'</span></div></a></div>'
+				str += '<ul class="sub-menu menutwo" aria-expanded="false" id="m'+one.menu_id+'" style="display: none; padding-inline-start:0px;">'
+				if(firstMenuId == 0){
+					firstMenuId = one.menu_id;
+				}
+				one.children.forEach(two=>{
+					if(!two.children || two.children.length == 0){
+						str += '<li class="twoMenu" onmouseover="twoMouseover(tm'+two.menu_id+')" id="tm'+two.menu_id+'"><a id="'+two.menu_id+'" target="iframe0" class="waves-effect j_menu" href="'+two.url+'"><i class="'+two.icon+'"></i><span key="'+two.url+'">'+two.title+'</span></a></li>'
+					}else{
+						str += '<li><a target="iframe0" class="has-arrow waves-effect" href="javascript: void(0);"><i class="'+two.icon+'"></i><span key="'+two.url+'">'+two.title+'</span></a>'
+						str += '<ul class="sub-menu" aria-expanded="false">'
+						two.children.forEach(third=>{
+							str += '<li><a target="iframe0" class="waves-effect j_menu" href="'+third.url+'"><i class="'+third.icon+'"></i><span key="'+third.url+'">'+third.title+'</span></a></li>'
+						})
+						str += '</ul>'
+					}
+				})
+				str += '</ul>'
+				str +='</li>'
+			}
+		})
+
+		$('#side-menu').metisMenu('dispose');
+		$("#side-menu").append(str);
+		$('#side-menu').metisMenu();
+
+		$("#p-menu").append(pmenu);
+
+
+
+		sessionStorage.setItem(base_url+'breadcrumb',JSON.stringify(res.data.data))
+		openMenu(firstMenuId)
+	}
+})
+	function twoMouseover(id) {
+		$(".twoMenu").css('background','')
+		$(id).css('background','rgb(238 238 238 / 28%)')
+	}
+	function mouseout(id) {
+		$(".oneMenu").css('background','')
+	}
+	function mouseover(id) {
+		$(".oneMenu").css('background','')
+		$(id).css('background','#334067')
+	}
+	function openMenu(id){
+
+		$(".menutwo").hide();
+		$("#m"+id).show();
+		$(".oneMenu-open").attr('class','oneMenu');
+		$(".oneMenu").css('background','')
+		$("#tm"+id).attr('class','oneMenu-open');
+		$("#tm"+id).css('background','#334067');
+
+	}
+height();
+window.onresize = function(){
+	height();
+}
+function height(){
+	let height = document.body.clientHeight;
+	$("#left_one_menu").css('height',height+'px');
+};
+
+$(function(){
+	Cookies.set(base_url+'menu','')
+	$(document).on('click','.j_menu',function(){
+		menu = []
+		var path = {
+			title:$(this).find('span').text(),
+			url:$(this).attr('href'),
+			fullurl:$(this).attr('href'),
+			id:$(this).attr('id'),
+		}
+
+
+
+		if(path.title !== '首页'){
+			var noUrl = true
+			if(Cookies.get(base_url+'menu')){
+				var tags = JSON.parse(Cookies.get(base_url+'menu'))
+				tags.forEach(item=>{
+					if(item.url == path.url){
+						noUrl = false
+					}
+				})
+				if(noUrl){
+					tags.push(path)
+					Cookies.set(base_url+'menu',JSON.stringify(tags))
+				}
+			}else{
+				menu.push(path)
+				Cookies.set(base_url+'menu',JSON.stringify(menu))
+			}
+		}
+	});
+})
+</script>
